@@ -10,16 +10,8 @@ export default async function handler(
   }
 
   try {
-    // Get the base URL from environment or construct it
-    let baseUrl: string;
-
-    if (process.env.NODE_ENV === 'production') {
-      // In production, use the Vercel URL
-      baseUrl = 'https://prueba-tecnica-fullstack-8ofl.vercel.app';
-    } else {
-      // In development, use localhost
-      baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    }
+    // Get the base URL from environment
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
     // Redirect to GitHub OAuth with proper scopes
     // user:email scope is required to access user's email addresses
