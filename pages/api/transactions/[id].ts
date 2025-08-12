@@ -74,7 +74,7 @@ export default async function handler(
             concept,
             amount: parseFloat(amount),
             type,
-            date: new Date(date),
+            date: new Date(date + 'T00:00:00'), // Ensure consistent timezone handling
           },
           include: {
             user: {

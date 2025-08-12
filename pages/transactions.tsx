@@ -22,7 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { Transaction } from '@/lib/types';
-import { formatCurrency, formatDateShort } from '@/lib/utils';
+import { formatCurrency, formatDateShort, toDateInputValue } from '@/lib/utils';
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,7 +54,7 @@ const Transactions = () => {
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'EXPENSE',
-      date: new Date().toISOString().split('T')[0],
+      date: toDateInputValue(new Date()),
     },
   });
 
@@ -121,25 +121,12 @@ const Transactions = () => {
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    
-    // Safely handle the date conversion
-    let dateValue = '';
-    try {
-      const date = new Date(transaction.date);
-      if (!isNaN(date.getTime())) {
-        dateValue = date.toISOString().split('T')[0];
-      } else {
-        dateValue = new Date().toISOString().split('T')[0];
-      }
-    } catch {
-      dateValue = new Date().toISOString().split('T')[0];
-    }
-    
+
     reset({
       concept: transaction.concept,
       amount: transaction.amount,
       type: transaction.type,
-      date: dateValue,
+      date: toDateInputValue(transaction.date),
     });
     setIsModalOpen(true);
   };
@@ -167,7 +154,7 @@ const Transactions = () => {
       concept: '',
       amount: 0,
       type: 'EXPENSE',
-      date: new Date().toISOString().split('T')[0],
+      date: toDateInputValue(new Date()),
     });
     setIsModalOpen(true);
   };

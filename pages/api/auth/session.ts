@@ -15,7 +15,7 @@ export default async function handler(
   try {
     // Get session from cookie
     const sessionToken = req.cookies.session;
-    
+
     if (!sessionToken) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -42,7 +42,6 @@ export default async function handler(
       expires: session.expiresAt.toISOString(),
     });
   } catch (error) {
-    console.error('Session error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

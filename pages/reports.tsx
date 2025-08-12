@@ -11,7 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Transaction } from '@/lib/types';
-import { formatCurrency, exportToCSV } from '@/lib/utils';
+import {
+  formatCurrency,
+  exportToCSV,
+  safeParseDate,
+  formatDateForExport,
+  toDateInputValue,
+} from '@/lib/utils';
 import {
   BarChart3,
   Download,
@@ -51,15 +57,11 @@ const Reports = () => {
   }, [session, isAdmin]);
 
   const fetchTransactions = async () => {
-    try {
-      const response = await fetch('/api/transactions');
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data);
-        calculateSummary(data);
-      }
-    } catch {
-      // Failed to fetch transactions
+    const response = await fetch('/api/transactions');
+    if (response.ok) {
+      const data = await response.json();
+      setTransactions(data);
+      calculateSummary(data);
     }
   };
 
@@ -85,7 +87,13 @@ const Reports = () => {
   const prepareChartData = () => {
     const monthlyData = transactions.reduce(
       (acc, transaction) => {
-        const date = new Date(transaction.date);
+        const date = safeParseDate(transaction.date);
+
+        // Skip transactions with invalid dates
+        if (!date) {
+          return acc;
+        }
+
         const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
 
         if (!acc[monthYear]) {
@@ -146,14 +154,14 @@ const Reports = () => {
       Concepto: t.concept,
       Monto: t.amount,
       Tipo: t.type === 'INCOME' ? 'Ingreso' : 'Gasto',
-      Fecha: new Date(t.date).toLocaleDateString('es-CO'),
+      Fecha: formatDateForExport(t.date),
       Usuario: t.user.name,
-      'Fecha de Creación': new Date(t.createdAt).toLocaleDateString('es-CO'),
+      'Fecha de Creación': formatDateForExport(t.createdAt),
     }));
 
     exportToCSV(
       csvData,
-      `reporte_transacciones_${new Date().toISOString().split('T')[0]}.csv`
+      `reporte_transacciones_${toDateInputValue(new Date())}.csv`
     );
   };
 
@@ -417,7 +425,12 @@ const Reports = () => {
                       {formatCurrency(transaction.amount)}
                     </span>
                     <span className='text-sm text-gray-500'>
-                      {new Date(transaction.date).toLocaleDateString('es-CO')}
+                      {(() => {
+                        const date = safeParseDate(transaction.date);
+                        return date
+                          ? date.toLocaleDateString('es-CO')
+                          : 'Fecha inválida';
+                      })()}
                     </span>
                   </div>
                 </div>

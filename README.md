@@ -15,6 +15,7 @@ Un sistema completo de gestión financiera construido con Next.js, TypeScript, T
 ## 🛠️ **Stack Tecnológico**
 
 ### Frontend
+
 - ✅ **Next.js** con Pages Router
 - ✅ **TypeScript**
 - ✅ **Tailwind CSS**
@@ -22,6 +23,7 @@ Un sistema completo de gestión financiera construido con Next.js, TypeScript, T
 - ✅ **NextJS API routes** para comunicación
 
 ### Backend
+
 - ✅ **NextJS API routes** para endpoints REST
 - ✅ **PostgreSQL** en Supabase
 - ✅ **Prisma ORM**
@@ -108,6 +110,7 @@ npx prisma studio
 ## 📚 **Documentación de la API**
 
 ### Endpoint de Documentación
+
 - **URL**: `/api/docs`
 - **Página Web**: `/docs`
 - **Formato**: OpenAPI 3.0 / Swagger
@@ -115,11 +118,13 @@ npx prisma studio
 ### Endpoints Principales
 
 #### 🔐 Autenticación
+
 - `GET /api/auth/signin/github` - Iniciar sesión con GitHub
 - `GET /api/auth/callback/github` - Callback de OAuth
 - `GET /api/auth/signout` - Cerrar sesión
 
 #### 💰 Transacciones
+
 - `GET /api/transactions` - Obtener transacciones
 - `POST /api/transactions` - Crear transacción (solo admin)
 - `GET /api/transactions/[id]` - Obtener transacción específica
@@ -127,9 +132,11 @@ npx prisma studio
 - `DELETE /api/transactions/[id]` - Eliminar transacción (solo admin)
 
 #### 📊 Resúmenes
+
 - `GET /api/summary` - Resumen financiero
 
 #### 👥 Usuarios
+
 - `GET /api/users` - Lista de usuarios
 - `GET /api/users/[id]` - Perfil de usuario específico
 - `PUT /api/users/[id]` - Actualizar usuario (solo admin)
@@ -138,12 +145,14 @@ npx prisma studio
 ## 🔒 **Control de Acceso**
 
 ### Usuarios Administradores (ADMIN)
+
 - ✅ Acceso completo a todas las funcionalidades
 - ✅ Pueden ver, crear, editar y eliminar transacciones
 - ✅ Pueden gestionar usuarios del sistema
 - ✅ Ven resúmenes financieros completos
 
 ### Usuarios Regulares (USER)
+
 - ✅ Pueden ver solo sus propias transacciones
 - ✅ Pueden ver solo su propio resumen financiero
 - ✅ Pueden ver solo su propio perfil
@@ -182,16 +191,19 @@ prueba-tecnica-fullstack/
 ## 🚨 **Solución de Problemas**
 
 ### Error de Conexión a Base de Datos
+
 - Verifica que `DATABASE_URL` esté correctamente configurada
 - Asegúrate de que Supabase permita conexiones desde Vercel
 - Verifica que las migraciones se hayan ejecutado
 
 ### Error de Autenticación GitHub
+
 - Verifica que `GITHUB_ID` y `GITHUB_SECRET` estén correctos
 - Asegúrate de que la URL de callback coincida con tu dominio
 - Verifica que la app OAuth esté configurada correctamente
 
 ### Error de Build en Vercel
+
 - Verifica que todas las variables de entorno estén configuradas
 - Revisa los logs de build en Vercel
 - Asegúrate de que las dependencias estén en `package.json`
@@ -199,6 +211,7 @@ prueba-tecnica-fullstack/
 ## 📞 **Soporte**
 
 Para soporte técnico o preguntas sobre el despliegue:
+
 - Revisa los logs de Vercel
 - Verifica la configuración de variables de entorno
 - Consulta la documentación de la API en `/docs`

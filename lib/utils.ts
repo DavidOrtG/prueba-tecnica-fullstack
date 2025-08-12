@@ -12,14 +12,62 @@ export const formatCurrency = (amount: number): string =>
     maximumFractionDigits: 0,
   }).format(amount);
 
-export const formatDate = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+/**
+ * Safely converts a date string or Date object to a Date
+ * Handles various date formats and returns null for invalid dates
+ */
+export const safeParseDate = (date: Date | string): Date | null => {
+  if (date instanceof Date) {
+    return date;
+  }
+
+  // Try to parse the date string
+  const parsed = new Date(date);
+
   // Check if the date is valid
-  if (isNaN(dateObj.getTime())) {
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  // If parsing fails, return null
+  return null;
+};
+
+/**
+ * Converts a date to YYYY-MM-DD format for HTML date inputs
+ * Handles timezone issues by using local date methods
+ */
+export const toDateInputValue = (date: Date | string): string => {
+  const dateObj = safeParseDate(date);
+
+  if (!dateObj) {
+    // Return current date format for invalid dates
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Use local date methods to avoid timezone issues
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Formats a date for display with full month name
+ */
+export const formatDate = (date: Date | string): string => {
+  const dateObj = safeParseDate(date);
+
+  // Check if the date is valid
+  if (!dateObj) {
     return 'Fecha inválida';
   }
-  
+
   return new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'long',
@@ -27,19 +75,39 @@ export const formatDate = (date: Date | string): string => {
   }).format(dateObj);
 };
 
+/**
+ * Formats a date for display with short month name
+ */
 export const formatDateShort = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+  const dateObj = safeParseDate(date);
+
   // Check if the date is valid
-  if (isNaN(dateObj.getTime())) {
+  if (!dateObj) {
     return 'Fecha inválida';
   }
-  
+
   return new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   }).format(dateObj);
+};
+
+/**
+ * Formats a date for CSV export with consistent locale
+ */
+export const formatDateForExport = (date: Date | string): string => {
+  const dateObj = safeParseDate(date);
+
+  if (!dateObj) {
+    return 'Fecha inválida';
+  }
+
+  return dateObj.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
 };
 
 export const calculateBalance = (transactions: Transaction[]): number =>
