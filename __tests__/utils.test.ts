@@ -189,101 +189,111 @@ describe('Utils Functions', () => {
         { name: 'John', age: 30, city: 'New York' },
         { name: 'Jane', age: 25, city: 'Los Angeles' },
       ];
-
-      // Mock browser APIs
-      const mockElement = {
-        setAttribute: jest.fn(),
-        click: jest.fn(),
-        style: {},
-      };
-
-      const mockDocument = {
-        createElement: jest.fn(() => mockElement),
-        body: {
-          appendChild: jest.fn(),
-          removeChild: jest.fn(),
-        },
-      };
-
-      const mockBlob = jest.fn();
-      const mockURL = {
-        createObjectURL: jest.fn(() => 'mock-url'),
-        revokeObjectURL: jest.fn(),
-      };
-
+      
+      // Spy on DOM methods
+      const createElementSpy = jest.spyOn(document, 'createElement');
+      const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+      const removeChildSpy = jest.spyOn(document.body, 'removeChild');
+      
+      // Mock Blob and URL
+      const mockBlob = jest.fn().mockImplementation((content, options) => ({
+        type: options?.type || 'text/csv;charset=utf-8;',
+        size: content.length,
+      }));
+      const mockCreateObjectURL = jest.fn(() => 'mock-url');
+      const mockRevokeObjectURL = jest.fn();
+      
       // Store original globals
-      const originalDocument = global.document;
       const originalBlob = global.Blob;
-      const originalURL = global.URL;
-
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalRevokeObjectURL = URL.revokeObjectURL;
+      
       // Replace global objects
-      (global as any).document = mockDocument;
       (global as any).Blob = mockBlob;
-      (global as any).URL = mockURL;
+      URL.createObjectURL = mockCreateObjectURL;
+      URL.revokeObjectURL = mockRevokeObjectURL;
 
       try {
         exportToCSV(testData, 'test.csv');
-        expect(mockDocument.createElement).toHaveBeenCalledWith('a');
-        expect(mockElement.setAttribute).toHaveBeenCalledWith(
-          'href',
-          'mock-url'
+        
+        // Verify the function was called
+        expect(createElementSpy).toHaveBeenCalledWith('a');
+        expect(appendChildSpy).toHaveBeenCalled();
+        expect(removeChildSpy).toHaveBeenCalled();
+        
+        // Verify Blob was created with correct parameters
+        expect(mockBlob).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.stringContaining('name,age,city'),
+            expect.stringContaining('John'),
+            expect.stringContaining('Jane')
+          ]),
+          { type: 'text/csv;charset=utf-8;' }
         );
-        expect(mockElement.setAttribute).toHaveBeenCalledWith(
-          'download',
-          'test.csv'
-        );
+        expect(mockCreateObjectURL).toHaveBeenCalled();
+        expect(mockRevokeObjectURL).toHaveBeenCalledWith('mock-url');
       } finally {
         // Restore global objects
-        (global as any).document = originalDocument;
         (global as any).Blob = originalBlob;
-        (global as any).URL = originalURL;
+        URL.createObjectURL = originalCreateObjectURL;
+        URL.revokeObjectURL = originalRevokeObjectURL;
+        
+        // Restore spies
+        createElementSpy.mockRestore();
+        appendChildSpy.mockRestore();
+        removeChildSpy.mockRestore();
       }
     });
 
     it('should handle empty data gracefully', () => {
-      const mockElement = {
-        setAttribute: jest.fn(),
-        click: jest.fn(),
-        style: {},
-      };
-
-      const mockDocument = {
-        createElement: jest.fn(() => mockElement),
-        body: {
-          appendChild: jest.fn(),
-          removeChild: jest.fn(),
-        },
-      };
-
-      const mockBlob = jest.fn();
-      const mockURL = {
-        createObjectURL: jest.fn(() => 'mock-url'),
-        revokeObjectURL: jest.fn(),
-      };
-
-      const originalDocument = global.document;
+      // Spy on DOM methods
+      const createElementSpy = jest.spyOn(document, 'createElement');
+      const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+      const removeChildSpy = jest.spyOn(document.body, 'removeChild');
+      
+      // Mock Blob and URL
+      const mockBlob = jest.fn().mockImplementation((content, options) => ({
+        type: options?.type || 'text/csv;charset=utf-8;',
+        size: content.length,
+      }));
+      const mockCreateObjectURL = jest.fn(() => 'mock-url');
+      const mockRevokeObjectURL = jest.fn();
+      
+      // Store original globals
       const originalBlob = global.Blob;
-      const originalURL = global.URL;
-
-      (global as any).document = mockDocument;
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalRevokeObjectURL = URL.revokeObjectURL;
+      
+      // Replace global objects
       (global as any).Blob = mockBlob;
-      (global as any).URL = mockURL;
+      URL.createObjectURL = mockCreateObjectURL;
+      URL.revokeObjectURL = mockRevokeObjectURL;
 
       try {
         exportToCSV([], 'empty.csv');
-        expect(mockDocument.createElement).toHaveBeenCalledWith('a');
-        expect(mockElement.setAttribute).toHaveBeenCalledWith(
-          'href',
-          'mock-url'
+        
+        // Verify the function was called
+        expect(createElementSpy).toHaveBeenCalledWith('a');
+        expect(appendChildSpy).toHaveBeenCalled();
+        expect(removeChildSpy).toHaveBeenCalled();
+        
+        // Verify Blob was created with correct parameters for empty data
+        expect(mockBlob).toHaveBeenCalledWith(
+          [""],
+          { type: 'text/csv;charset=utf-8;' }
         );
-        expect(mockElement.setAttribute).toHaveBeenCalledWith(
-          'download',
-          'empty.csv'
-        );
+        expect(mockCreateObjectURL).toHaveBeenCalled();
+        expect(mockRevokeObjectURL).toHaveBeenCalledWith('mock-url');
       } finally {
-        (global as any).document = originalDocument;
+        // Restore global objects
         (global as any).Blob = originalBlob;
-        (global as any).URL = originalURL;
+        URL.createObjectURL = originalCreateObjectURL;
+        URL.revokeObjectURL = originalRevokeObjectURL;
+        
+        // Restore spies
+        createElementSpy.mockRestore();
+        appendChildSpy.mockRestore();
+        removeChildSpy.mockRestore();
       }
     });
   });
