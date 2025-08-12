@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/auth/config';
-import { getSessionFromRequest } from '../../../lib/auth/session';
+import { prisma } from '@/lib/auth/config';
+import { getSessionFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -110,7 +110,10 @@ import { getSessionFromRequest } from '../../../lib/auth/session';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     // Verificar autenticación
     const session = await getSessionFromRequest(req);
@@ -121,15 +124,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { method } = req;
 
     switch (method) {
-      case 'GET':
+      case 'GET': {
         // GET: Filter transactions based on user role
         let whereClause = {};
-        
+
         // If not admin, only show user's own transactions
         if (session.user.role !== 'ADMIN') {
           whereClause = { userId: session.user.id };
         }
-        
+
         const transactions = await prisma.transaction.findMany({
           where: whereClause,
           include: {
@@ -149,39 +152,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.json(transactions);
         break;
-
-      case 'POST':
+      }
+      case 'POST': {
         // POST: Only admin users can create transactions
         if (session.user.role !== 'ADMIN') {
-          return res.status(403).json({ error: 'Forbidden: Admin access required to create transactions' });
+          return res.status(403).json({
+            error: 'Forbidden: Admin access required to create transactions',
+          });
         }
 
         const { concept, amount, type, date, userId } = req.body;
-        
-        console.log('Received transaction data:', { concept, amount, type, date, userId });
 
         // Validar datos
         if (!concept || !amount || !type || !date || !userId) {
-          console.log('Validation failed - missing fields:', { 
-            hasConcept: !!concept, 
-            hasAmount: !!amount, 
-            hasType: !!type, 
-            hasDate: !!date, 
-            hasUserId: !!userId 
-          });
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: 'Missing required fields',
             details: {
               concept: !concept ? 'Missing' : 'OK',
               amount: !amount ? 'Missing' : 'OK',
               type: !type ? 'Missing' : 'OK',
               date: !date ? 'Missing' : 'OK',
-              userId: !userId ? 'Missing' : 'OK'
-            }
+              userId: !userId ? 'Missing' : 'OK',
+            },
           });
         }
-
-        console.log('Creating transaction with data:', { concept, amount, type, date, userId });
 
         // Crear nueva transacción
         const newTransaction = await prisma.transaction.create({
@@ -204,16 +198,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         });
 
-        console.log('Transaction created successfully:', newTransaction.id);
         res.status(201).json(newTransaction);
         break;
-
+      }
       default:
         res.setHeader('Allow', ['GET', 'POST']);
-        res.status(405).json({ error: `Method ${method} Not Allowed` });
+        res.status(405).json({ error: 'Method not allowed' });
     }
-  } catch (error) {
-    console.error('Transactions API error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 }

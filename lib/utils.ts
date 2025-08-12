@@ -1,58 +1,51 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { Transaction } from './types';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-CO', {
+export const formatCurrency = (amount: number): string =>
+  new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
-}
 
-export function formatDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat('es-CO', {
+export const formatDate = (date: Date): string =>
+  new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(dateObj);
-}
+  }).format(date);
 
-export function formatDateShort(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat('es-CO', {
+export const formatDateShort = (date: Date): string =>
+  new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(dateObj);
-}
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
 
-export function calculateBalance(transactions: any[]): number {
-  return transactions.reduce((balance, transaction) => {
+export const calculateBalance = (transactions: Transaction[]): number =>
+  transactions.reduce((balance, transaction) => {
     if (transaction.type === 'INCOME') {
       return balance + transaction.amount;
     } else {
       return balance - transaction.amount;
     }
   }, 0);
-}
 
-export function exportToCSV(data: any[], filename: string) {
-  const csvContent = data.map(row => 
-    Object.values(row).map(value => 
-      typeof value === 'string' ? `"${value}"` : value
-    ).join(',')
-  ).join('\n');
-  
-  const csvHeader = Object.keys(data[0]).join(',') + '\n';
-  const csv = csvHeader + csvContent;
-  
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+export const exportToCSV = (
+  data: Record<string, unknown>[],
+  filename: string
+): void => {
+  const headers = Object.keys(data[0] || {});
+  const csvContent = [
+    headers.join(','),
+    ...data.map((row) => headers.map((header) => `"${row[header]}"`).join(',')),
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
@@ -61,4 +54,5 @@ export function exportToCSV(data: any[], filename: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
+  URL.revokeObjectURL(url);
+};

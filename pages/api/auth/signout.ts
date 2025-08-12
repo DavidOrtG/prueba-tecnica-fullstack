@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/auth/config';
+import { prisma } from '@/lib/auth/config';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', ['GET', 'POST']);
     return res.status(405).json({ error: 'Method not allowed' });
@@ -12,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const cookieHeader = req.headers.cookie || '';
     const sessionToken = cookieHeader
       .split(';')
-      .find(cookie => cookie.trim().startsWith('better-auth.session-token='))
+      .find((cookie) => cookie.trim().startsWith('better-auth.session-token='))
       ?.split('=')[1];
 
     if (sessionToken) {
@@ -30,10 +33,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
       res.redirect('/');
     } else {
-      res.json({ success: true });
+      res.json({ message: 'Signed out successfully' });
     }
-  } catch (error) {
-    console.error('Signout error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 }

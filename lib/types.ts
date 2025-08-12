@@ -1,11 +1,11 @@
 export enum UserRole {
-  USER = "USER",
-  ADMIN = "ADMIN",
+  USER = 'USER',
+  ADMIN = 'ADMIN',
 }
 
 export enum TransactionType {
-  INCOME = "INCOME",
-  EXPENSE = "EXPENSE",
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
 }
 
 export interface User {
@@ -44,7 +44,7 @@ export interface Session {
   expires: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

@@ -1,8 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/auth/config';
-import { getSessionFromRequest } from '../../../lib/auth/session';
+import { prisma } from '@/lib/auth/config';
+import { getSessionFromRequest } from '@/lib/auth/session';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     // Verificar autenticación
     const session = await getSessionFromRequest(req);
@@ -18,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     switch (method) {
-      case 'GET':
+      case 'GET': {
         // GET: Allow users to view their own profile, or admins to view any
         const user = await prisma.user.findUnique({
           where: { id },
@@ -26,9 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id: true,
             name: true,
             email: true,
-            emailVerified: true,
-            image: true,
             role: true,
+            image: true,
             phone: true,
             createdAt: true,
             updatedAt: true,
@@ -41,48 +43,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Check if user can view this profile
         if (session.user.role !== 'ADMIN' && user.id !== session.user.id) {
-          return res.status(403).json({ error: 'Forbidden: You can only view your own profile' });
+          return res
+            .status(403)
+            .json({ error: 'Forbidden: You can only view your own profile' });
         }
 
         res.json(user);
         break;
-
-      case 'PUT':
+      }
+      case 'PUT': {
         // PUT: Only admin users can modify users
         if (session.user.role !== 'ADMIN') {
-          return res.status(403).json({ error: 'Forbidden: Admin access required to modify users' });
+          return res.status(403).json({
+            error: 'Forbidden: Admin access required to modify users',
+          });
         }
 
         const { name, role } = req.body;
 
-        // Validar datos
         if (!name || !role) {
           return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Verificar que el usuario existe
-        const existingUser = await prisma.user.findUnique({
-          where: { id },
-        });
-
-        if (!existingUser) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Actualizar usuario
         const updatedUser = await prisma.user.update({
           where: { id },
           data: {
             name,
             role,
+            updatedAt: new Date(),
           },
           select: {
             id: true,
             name: true,
             email: true,
-            emailVerified: true,
-            image: true,
             role: true,
+            image: true,
             phone: true,
             createdAt: true,
             updatedAt: true,
@@ -91,36 +86,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.json(updatedUser);
         break;
-
-      case 'DELETE':
+      }
+      case 'DELETE': {
         // DELETE: Only admin users can delete users
         if (session.user.role !== 'ADMIN') {
-          return res.status(403).json({ error: 'Forbidden: Admin access required to delete users' });
+          return res.status(403).json({
+            error: 'Forbidden: Admin access required to delete users',
+          });
         }
 
-        // Verificar que el usuario existe
-        const userToDelete = await prisma.user.findUnique({
-          where: { id },
-        });
-
-        if (!userToDelete) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Eliminar usuario
         await prisma.user.delete({
           where: { id },
         });
-
-        res.json({ success: true });
+        res.json({ message: 'User deleted successfully' });
         break;
+      }
 
       default:
         res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-        res.status(405).json({ error: `Method ${method} Not Allowed` });
+        res.status(405).json({ error: 'Method not allowed' });
     }
-  } catch (error) {
-    console.error('User API error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 }

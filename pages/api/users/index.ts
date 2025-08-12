@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/auth/config';
-import { getSessionFromRequest } from '../../../lib/auth/session';
+import { prisma } from '@/lib/auth/config';
+import { getSessionFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -42,7 +42,10 @@ import { getSessionFromRequest } from '../../../lib/auth/session';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     // Verificar autenticación
     const session = await getSessionFromRequest(req);
@@ -53,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Allow all authenticated users to view user list (read-only)
     // Filter data based on user role
     let whereClause = {};
-    
+
     // If not admin, only show current user
     if (session.user.role !== 'ADMIN') {
       whereClause = { id: session.user.id };
@@ -86,8 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     res.json(users);
-  } catch (error) {
-    console.error('Users API error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 }

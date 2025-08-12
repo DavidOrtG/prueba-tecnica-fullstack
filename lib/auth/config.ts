@@ -19,14 +19,11 @@ Object.entries(requiredEnvVars).forEach(([key, value]) => {
 const prisma = new PrismaClient();
 
 // Test database connection
-prisma.$connect()
-  .then(() => {
-    console.log('✅ Database connected successfully');
-  })
-  .catch((error: unknown) => {
-    console.error('❌ Database connection failed:', error);
-    process.exit(1);
-  });
+try {
+  await prisma.$connect();
+} catch {
+  throw new Error('Database connection failed');
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

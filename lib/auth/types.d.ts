@@ -1,13 +1,13 @@
-import "better-auth";
+import 'better-auth';
 
-declare module "better-auth" {
+declare module 'better-auth' {
   interface Session {
     user: {
       id: string;
       name: string;
       email: string;
       image?: string;
-      role: "USER" | "ADMIN";
+      role: 'USER' | 'ADMIN';
       phone?: string | null;
     };
     expires: string;
@@ -18,7 +18,7 @@ declare module "better-auth" {
     name: string;
     email: string;
     image?: string;
-    role: "USER" | "ADMIN";
+    role: 'USER' | 'ADMIN';
     phone?: string | null;
   }
 }

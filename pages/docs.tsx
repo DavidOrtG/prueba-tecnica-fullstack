@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
-import Navigation from '../components/Navigation';
+import { Navigation } from '@/components/Navigation';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 
-export default function APIDocs() {
-  const [spec, setSpec] = useState<any>(null);
+interface SwaggerSpec {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+  };
+  paths: Record<string, unknown>;
+  components?: Record<string, unknown>;
+}
+
+const APIDocs = () => {
+  const [spec, setSpec] = useState<SwaggerSpec | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,53 +37,37 @@ export default function APIDocs() {
     fetchSpec();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando documentación de la API...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              <strong className="font-bold">Error:</strong>
-              <span className="block sm:inline"> {error}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='mb-8'>
+          <h1 className='text-2xl font-bold text-gray-900'>
             Documentación de la API
           </h1>
-          <p className="text-gray-600 mt-2">
-            Documentación completa de todos los endpoints de la API con ejemplos y esquemas
+          <p className='text-gray-600 mt-2'>
+            Documentación completa de todos los endpoints de la API con ejemplos
+            y esquemas
           </p>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+
+        {loading ? (
+          <div className='flex items-center justify-center min-h-screen'>
+            <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
+          </div>
+        ) : error ? (
+          <div className='flex items-center justify-center min-h-screen'>
+            <div className='text-center'>
+              <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
+              <p className='text-gray-600'>{error}</p>
+            </div>
+          </div>
+        ) : spec ? (
           <SwaggerUI spec={spec} />
-        </div>
+        ) : null}
       </div>
     </div>
   );
-}
+};
+
+export default APIDocs;

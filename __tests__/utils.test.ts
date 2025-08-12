@@ -1,4 +1,11 @@
-import { formatCurrency, formatDate, formatDateShort, calculateBalance, exportToCSV } from '../lib/utils';
+import {
+  formatCurrency,
+  formatDate,
+  formatDateShort,
+  calculateBalance,
+  exportToCSV,
+} from '@/lib/utils';
+import { Transaction } from '@/lib/types';
 
 describe('Utils Functions', () => {
   describe('formatCurrency', () => {
@@ -10,7 +17,7 @@ describe('Utils Functions', () => {
     });
 
     it('should format decimal numbers correctly', () => {
-      expect(formatCurrency(1000.50)).toMatch(/^\$[^\S]*1\.001$/);
+      expect(formatCurrency(1000.5)).toMatch(/^\$[^\S]*1\.001$/);
       expect(formatCurrency(999.99)).toMatch(/^\$[^\S]*1\.000$/);
     });
 
@@ -30,7 +37,7 @@ describe('Utils Functions', () => {
     });
 
     it('should format date strings from ISO format', () => {
-      const formatted = formatDate('2024-01-15T10:30:00Z');
+      const formatted = formatDate(new Date('2024-01-15T10:30:00Z'));
       expect(formatted).toContain('15');
       expect(formatted).toContain('enero');
       expect(formatted).toContain('2024');
@@ -54,7 +61,7 @@ describe('Utils Functions', () => {
         { type: 'EXPENSE', amount: 200 },
       ];
 
-      const balance = calculateBalance(transactions);
+      const balance = calculateBalance(transactions as Transaction[]);
       expect(balance).toBe(1000); // 1000 + 500 - 300 - 200
     });
 
@@ -69,7 +76,7 @@ describe('Utils Functions', () => {
         { type: 'INCOME', amount: 500 },
       ];
 
-      const balance = calculateBalance(transactions);
+      const balance = calculateBalance(transactions as Transaction[]);
       expect(balance).toBe(1500);
     });
 
@@ -79,50 +86,52 @@ describe('Utils Functions', () => {
         { type: 'EXPENSE', amount: 500 },
       ];
 
-      const balance = calculateBalance(transactions);
+      const balance = calculateBalance(transactions as Transaction[]);
       expect(balance).toBe(-1500);
     });
   });
 
-  describe('exportToCSV', () => {
-    it('should generate correct CSV content structure', () => {
-      const mockData = [
-        { name: 'John', age: 30, city: 'New York' },
-        { name: 'Jane', age: 25, city: 'Los Angeles' },
-      ];
+  test('exportToCSV should generate CSV data', () => {
+    const testData = [
+      { name: 'John', age: 30, city: 'New York' },
+      { name: 'Jane', age: 25, city: 'Los Angeles' },
+    ];
 
-      // Test that the function doesn't throw an error
-      expect(() => {
-        // Mock the DOM methods to prevent errors
-        const originalDocument = global.document;
-        const originalBlob = global.Blob;
-        const originalURL = global.URL;
-        
-        global.document = {
-          createElement: jest.fn().mockReturnValue({
-            setAttribute: jest.fn(),
-            style: {},
-            click: jest.fn(),
-          }),
-          body: {
-            appendChild: jest.fn(),
-            removeChild: jest.fn(),
-          },
-        } as any;
-        
-        global.Blob = jest.fn().mockImplementation(() => ({}));
-        global.URL = {
-          createObjectURL: jest.fn().mockReturnValue('mock-url'),
-          revokeObjectURL: jest.fn(),
-        } as any;
+    // Mock browser APIs
+    const mockDocument = {
+      createElement: jest.fn(() => ({
+        setAttribute: jest.fn(),
+        click: jest.fn(),
+      })),
+      body: {
+        appendChild: jest.fn(),
+        removeChild: jest.fn(),
+      },
+    };
 
-        exportToCSV(mockData, 'test.csv');
-        
-        // Restore original globals
-        global.document = originalDocument;
-        global.Blob = originalBlob;
-        global.URL = originalURL;
-      }).not.toThrow();
-    });
+    const mockBlob = jest.fn();
+    const mockURL = {
+      createObjectURL: jest.fn(() => 'mock-url'),
+      revokeObjectURL: jest.fn(),
+    };
+
+    // Replace global objects
+    const originalDocument = global.document;
+    const originalBlob = global.Blob;
+    const originalURL = global.URL;
+
+    global.document = mockDocument as unknown as Document;
+    global.Blob = mockBlob as unknown as typeof Blob;
+    global.URL = mockURL as unknown as typeof URL;
+
+    try {
+      exportToCSV(testData, 'test.csv');
+      expect(mockDocument.createElement).toHaveBeenCalledWith('a');
+    } finally {
+      // Restore global objects
+      global.document = originalDocument;
+      global.Blob = originalBlob;
+      global.URL = originalURL;
+    }
   });
 });

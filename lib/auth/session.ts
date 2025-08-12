@@ -1,94 +1,78 @@
 import { NextApiRequest } from 'next';
+import { parseCookies } from 'better-auth';
 import { prisma } from './config';
-import { getCookies, parseCookies } from 'better-auth';
 
-export interface SessionUser {
+interface SessionUser {
   id: string;
   name: string;
   email: string;
   image?: string;
-  role: 'USER' | 'ADMIN';
-  phone?: string | null;
+  role: string;
 }
 
-export interface Session {
+interface Session {
   user: SessionUser;
   expires: string;
 }
 
-/**
- * Extract session information from Next.js API request
- * This is a workaround since better-auth v1.1.1 doesn't have direct session methods
- * for Next.js API routes
- */
-export async function getSessionFromRequest(req: NextApiRequest): Promise<Session | null> {
+export const getSessionFromRequest = async (
+  req: NextApiRequest
+): Promise<Session | null> => {
   try {
-    // Get cookies from the request
     const cookieHeader = req.headers.cookie || '';
     const cookies = parseCookies(cookieHeader);
-    
-    // Get the session token from cookies
-    const sessionToken = cookies.get('better-auth.session-token') || cookies.get('session-token');
-    
+    const sessionToken = cookies.get('session');
+
     if (!sessionToken) {
       return null;
     }
 
-    // Find the session in the database
     const session = await prisma.session.findUnique({
-      where: { token: sessionToken },
+      where: { id: sessionToken },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            image: true,
+          },
+        },
       },
     });
 
-    if (!session || !session.user) {
+    if (!session || new Date() > session.expiresAt) {
       return null;
     }
 
-    // Check if session is expired
-    if (session.expiresAt < new Date()) {
-      return null;
-    }
-
-    // Return the session with user information
     return {
       user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        role: session.user.role,
-        phone: session.user.phone,
+        ...session.user,
+        image: session.user.image || undefined,
       },
       expires: session.expiresAt.toISOString(),
     };
-  } catch (error) {
-    console.error('Error getting session from request:', error);
+  } catch {
     return null;
   }
-}
+};
 
-/**
- * Check if user is authenticated
- */
-export async function isAuthenticated(req: NextApiRequest): Promise<boolean> {
+export const isAuthenticated = async (
+  req: NextApiRequest
+): Promise<boolean> => {
   const session = await getSessionFromRequest(req);
-  return session !== null;
-}
+  return !!session;
+};
 
-/**
- * Check if user has admin role
- */
-export async function isAdmin(req: NextApiRequest): Promise<boolean> {
+export const isAdmin = async (req: NextApiRequest): Promise<boolean> => {
   const session = await getSessionFromRequest(req);
-  return session?.user.role === 'ADMIN';
-}
+  return session?.user?.role === 'ADMIN';
+};
 
-/**
- * Get current user from request
- */
-export async function getCurrentUser(req: NextApiRequest): Promise<SessionUser | null> {
+export const getCurrentUser = async (
+  req: NextApiRequest
+): Promise<SessionUser | null> => {
   const session = await getSessionFromRequest(req);
   return session?.user || null;
-}
+};

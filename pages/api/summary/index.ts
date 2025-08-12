@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/auth/config';
-import { getSessionFromRequest } from '../../../lib/auth/session';
+import { prisma } from '@/lib/auth/config';
+import { getSessionFromRequest } from '@/lib/auth/session';
 
 /**
  * @swagger
@@ -40,7 +40,10 @@ import { getSessionFromRequest } from '../../../lib/auth/session';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     // Verificar autenticación
     const session = await getSessionFromRequest(req);
@@ -51,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Allow all authenticated users to view summaries (read-only)
     // Filter data based on user role
     let whereClause = {};
-    
+
     // If not admin, only show user's own transactions
     if (session.user.role !== 'ADMIN') {
       whereClause = { userId: session.user.id };
@@ -67,42 +70,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Obtain summary of transactions (filtered by user role)
     const [totalIncome, totalExpenses, totalUsers] = await Promise.all([
       prisma.transaction.aggregate({
-        where: { 
+        where: {
           type: 'INCOME',
-          ...whereClause
+          ...whereClause,
         },
         _sum: { amount: true },
       }),
       prisma.transaction.aggregate({
-        where: { 
+        where: {
           type: 'EXPENSE',
-          ...whereClause
+          ...whereClause,
         },
         _sum: { amount: true },
       }),
       // Total users count - admin sees all, regular users see 1 (themselves)
-      session.user.role === 'ADMIN' 
-        ? prisma.user.count()
-        : Promise.resolve(1),
+      session.user.role === 'ADMIN' ? prisma.user.count() : Promise.resolve(1),
     ]);
-
-    console.log('Summary calculation:', {
-      totalIncome: totalIncome._sum.amount,
-      totalExpenses: totalExpenses._sum.amount,
-      totalUsers
-    });
 
     const summary = {
       income: totalIncome._sum.amount || 0,
       expenses: totalExpenses._sum.amount || 0,
-      balance: (totalIncome._sum.amount || 0) - (totalExpenses._sum.amount || 0),
+      balance:
+        (totalIncome._sum.amount || 0) - (totalExpenses._sum.amount || 0),
       totalUsers,
     };
 
-    console.log('Final summary response:', summary);
     res.json(summary);
-  } catch (error) {
-    console.error('Summary API error:', error);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
