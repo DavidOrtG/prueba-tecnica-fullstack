@@ -60,6 +60,19 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Validate environment variables
+  if (!process.env.GITHUB_ID || !process.env.GITHUB_SECRET || !process.env.DATABASE_URL) {
+    console.error('Missing required environment variables:', {
+      GITHUB_ID: !!process.env.GITHUB_ID,
+      GITHUB_SECRET: !!process.env.GITHUB_SECRET,
+      DATABASE_URL: !!process.env.DATABASE_URL,
+    });
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      details: process.env.NODE_ENV === 'development' ? 'Missing environment variables' : undefined
+    });
+  }
+
   const { code } = query;
 
   if (!code || typeof code !== 'string') {
@@ -67,6 +80,17 @@ export default async function handler(
   }
 
   try {
+    // Test database connection first
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return res.status(500).json({ 
+        error: 'Database connection failed',
+        details: process.env.NODE_ENV === 'development' ? (dbError as Error).message : undefined
+      });
+    }
+
     // Step 1: Exchange code for access token
     const tokenResponse = await fetch(
       'https://github.com/login/oauth/access_token',
@@ -85,14 +109,20 @@ export default async function handler(
     );
 
     if (!tokenResponse.ok) {
+      console.error('GitHub token response not ok:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+      });
       return res.status(400).json({
         error: 'Failed to get access token from GitHub',
+        details: process.env.NODE_ENV === 'development' ? `Status: ${tokenResponse.status}` : undefined
       });
     }
 
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
+      console.error('GitHub token error:', tokenData);
       return res.status(400).json({
         error: `GitHub error: ${tokenData.error_description || tokenData.error}`,
       });
@@ -101,6 +131,7 @@ export default async function handler(
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
+      console.error('No access token in response:', tokenData);
       return res.status(400).json({
         error: 'No access token received from GitHub',
       });
@@ -115,14 +146,20 @@ export default async function handler(
     });
 
     if (!userResponse.ok) {
+      console.error('GitHub user response not ok:', {
+        status: userResponse.status,
+        statusText: userResponse.statusText,
+      });
       return res.status(400).json({
         error: 'Failed to get user data from GitHub',
+        details: process.env.NODE_ENV === 'development' ? `Status: ${userResponse.status}` : undefined
       });
     }
 
     const userData = await userResponse.json();
 
     if (!userData.id || !userData.login) {
+      console.error('Invalid user data:', userData);
       return res.status(400).json({
         error: 'Invalid user data from GitHub',
       });
@@ -200,10 +237,18 @@ export default async function handler(
 
       // Redirect to dashboard
       res.redirect('/');
-    } catch {
-      return res.status(500).json({ error: 'Database operation failed' });
+    } catch (dbOpError) {
+      console.error('Database operation failed:', dbOpError);
+      return res.status(500).json({ 
+        error: 'Database operation failed',
+        details: process.env.NODE_ENV === 'development' ? (dbOpError as Error).message : undefined
+      });
+    } finally {
+      // Always disconnect from database
+      await prisma.$disconnect();
     }
   } catch (error) {
+    console.error('Unexpected error in GitHub callback:', error);
     return res.status(500).json({
       error: 'Internal server error during authentication',
       details:

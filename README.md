@@ -98,6 +98,46 @@ npx prisma studio
    - `NEXTAUTH_SECRET`
    - `NEXTAUTH_URL` (URL de producción)
 
+### 6. **Verificación del Despliegue**
+
+Después del despliegue, verifica que todo funcione correctamente:
+
+```bash
+# Verificar el estado de la aplicación
+curl https://tu-app.vercel.app/api/health
+
+# Verificar la autenticación de GitHub
+# Intenta iniciar sesión con GitHub desde tu aplicación
+```
+
+## 🔧 **Solución de Problemas**
+
+### Error 500 en Callback de GitHub OAuth
+
+Si encuentras un error 500 al intentar iniciar sesión con GitHub en producción:
+
+1. **Verifica las Variables de Entorno**:
+   - Visita `/api/health` para verificar que todas las variables estén configuradas
+   - Asegúrate de que `GITHUB_ID`, `GITHUB_SECRET` y `DATABASE_URL` estén definidas
+
+2. **Verifica la Base de Datos**:
+   - Asegúrate de que tu base de datos PostgreSQL sea accesible desde Vercel
+   - Verifica que las migraciones se hayan ejecutado correctamente
+
+3. **Verifica la Configuración de GitHub OAuth**:
+   - Asegúrate de que la URL de callback en tu app de GitHub coincida con tu dominio de producción
+   - La URL debe ser: `https://tu-app.vercel.app/api/auth/callback/github`
+
+4. **Revisa los Logs**:
+   - En Vercel, ve a Functions > View Function Logs para ver errores detallados
+   - Los errores ahora incluyen más información para debugging
+
+### Problemas Comunes
+
+- **Variables de Entorno Faltantes**: La aplicación ahora falla rápido con mensajes claros
+- **Conexión a Base de Datos**: Los problemas de conexión son capturados y registrados
+- **Cliente de Prisma**: Se genera automáticamente durante el build y postinstall
+
 3. Vercel detectará automáticamente que es un proyecto Next.js
 4. El build se ejecutará automáticamente
 

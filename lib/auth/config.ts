@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
-// Create Prisma client instance
-const prisma = new PrismaClient();
+// Create Prisma client instance with production optimizations
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  errorFormat: 'pretty',
+});
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -11,10 +14,22 @@ const requiredEnvVars = {
 };
 
 // Check if all required environment variables are present
-Object.entries(requiredEnvVars).forEach(([, value]) => {
-  if (!value) {
-    // Environment variable missing - this will be logged by the runtime
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars);
+  
+  // In production, we want to fail fast if critical env vars are missing
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
+}
+
+// Handle graceful shutdown
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
 });
 
 export { prisma };
