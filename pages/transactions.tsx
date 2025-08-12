@@ -453,6 +453,6 @@ const Transactions = () => {
       </Modal>
     </div>
   );
-};
+}; 
 
 export default Transactions;
