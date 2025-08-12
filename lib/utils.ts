@@ -12,19 +12,35 @@ export const formatCurrency = (amount: number): string =>
     maximumFractionDigits: 0,
   }).format(amount);
 
-export const formatDate = (date: Date): string =>
-  new Intl.DateTimeFormat('es-CO', {
+export const formatDate = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return 'Fecha inválida';
+  }
+  
+  return new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(date);
+  }).format(dateObj);
+};
 
-export const formatDateShort = (date: Date): string =>
-  new Intl.DateTimeFormat('es-CO', {
+export const formatDateShort = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return 'Fecha inválida';
+  }
+  
+  return new Intl.DateTimeFormat('es-CO', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(date);
+  }).format(dateObj);
+};
 
 export const calculateBalance = (transactions: Transaction[]): number =>
   transactions.reduce((balance, transaction) => {

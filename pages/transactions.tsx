@@ -121,11 +121,25 @@ const Transactions = () => {
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+    
+    // Safely handle the date conversion
+    let dateValue = '';
+    try {
+      const date = new Date(transaction.date);
+      if (!isNaN(date.getTime())) {
+        dateValue = date.toISOString().split('T')[0];
+      } else {
+        dateValue = new Date().toISOString().split('T')[0];
+      }
+    } catch {
+      dateValue = new Date().toISOString().split('T')[0];
+    }
+    
     reset({
       concept: transaction.concept,
       amount: transaction.amount,
       type: transaction.type,
-      date: new Date(transaction.date).toISOString().split('T')[0],
+      date: dateValue,
     });
     setIsModalOpen(true);
   };

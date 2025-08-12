@@ -1,23 +1,27 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionFromRequest } from '@/lib/auth/session';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   const { method, query } = req;
-  const [action] = query.all as string[];
+  const allRoutes = query.all as string[];
+
+  if (!allRoutes || allRoutes.length === 0) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+
+  const [action] = allRoutes;
 
   try {
     switch (method) {
       case 'GET': {
-        // Check if user is authenticated
-        const session = await getSessionFromRequest(req);
-        if (!session) {
+        // Only handle signin routes, not session
+        if (action === 'signin' && allRoutes[1] === 'github') {
           res.redirect('/api/auth/signin/github');
-          break;
+        } else {
+          res.status(404).json({ error: 'Route not found' });
         }
-        res.redirect('/api/auth/signin/github');
         break;
       }
 

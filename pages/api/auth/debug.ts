@@ -30,8 +30,6 @@ export default async function handler(
         hasGithubId: !!process.env.GITHUB_ID,
         hasGithubSecret: !!process.env.GITHUB_SECRET,
         hasDatabaseUrl: !!process.env.DATABASE_URL,
-        hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
-        hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
       },
     });
   } catch {
