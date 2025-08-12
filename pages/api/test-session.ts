@@ -66,7 +66,5 @@ export default async function handler(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

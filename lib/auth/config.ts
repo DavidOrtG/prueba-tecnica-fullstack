@@ -1,18 +1,33 @@
 import { PrismaClient } from '@prisma/client';
 
-// Create Prisma client instance with production optimizations
-const prisma = new PrismaClient({
-  log:
-    process.env.NODE_ENV === 'development'
-      ? ['query', 'error', 'warn']
-      : ['error'],
-  errorFormat: 'pretty',
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
+// Global variable to store Prisma client instance
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined;
+}
+
+// Create Prisma client instance with proper serverless configuration
+const createPrismaClient = () => {
+  return new PrismaClient({
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
+    errorFormat: 'pretty',
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
     },
-  },
-});
+  });
+};
+
+// Use global instance in development, create new in production
+const prisma = globalThis.__prisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV === 'development') {
+  globalThis.__prisma = prisma;
+}
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -34,26 +49,5 @@ if (missingVars.length > 0) {
     );
   }
 }
-
-// Test database connection on startup
-const testConnection = async () => {
-  try {
-    await prisma.$connect();
-    // Connection successful
-  } catch (error) {
-    // Don't throw in production, let the app start and handle errors gracefully
-    if (process.env.NODE_ENV === 'development') {
-      throw error;
-    }
-  }
-};
-
-// Test connection on startup
-testConnection();
-
-// Handle graceful shutdown
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-});
 
 export { prisma };

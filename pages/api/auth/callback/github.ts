@@ -61,17 +61,6 @@ const validateEnvironment = (): void => {
   }
 };
 
-// Helper function to test database connection
-const testDatabaseConnection = async (): Promise<void> => {
-  try {
-    await prisma.$connect();
-  } catch (dbError) {
-    throw new Error(
-      `Database connection failed: ${(dbError as Error).message}`
-    );
-  }
-};
-
 // Helper function to exchange code for access token
 const exchangeCodeForToken = async (code: string): Promise<string> => {
   const tokenResponse = await fetch(
@@ -217,16 +206,6 @@ const createSession = async (userId: string, req: NextApiRequest) => {
   });
 };
 
-// Helper function to handle database connection test
-const testDatabaseConnectionWithErrorHandling = async () => {
-  try {
-    await testDatabaseConnection();
-    return { success: true };
-  } catch (dbError) {
-    return { success: false, error: dbError };
-  }
-};
-
 // Helper function to handle database operations
 const handleDatabaseOperations = async (
   userData: Record<string, unknown>,
@@ -257,18 +236,6 @@ export default async function handler(
     // Validate environment variables
     validateEnvironment();
 
-    // Test database connection first
-    const dbTest = await testDatabaseConnectionWithErrorHandling();
-    if (!dbTest.success) {
-      return res.status(500).json({
-        error: 'Authentication service unavailable',
-        details:
-          process.env.NODE_ENV === 'development'
-            ? 'Database connection failed'
-            : undefined,
-      });
-    }
-
     // Step 1: Exchange code for access token
     const accessToken = await exchangeCodeForToken(code);
 
@@ -279,42 +246,25 @@ export default async function handler(
     const userEmail = await getUserEmail(accessToken, userData);
 
     // Step 4: Create or update user in database
-    try {
-      const user = await handleDatabaseOperations(userData, userEmail);
+    const user = await handleDatabaseOperations(userData, userEmail);
 
-      // Step 6: Set session cookie and redirect
-      const session = await createSession(user.id, req);
+    // Step 6: Set session cookie and redirect
+    const session = await createSession(user.id, req);
 
-      // Set secure cookie with proper attributes
-      let cookieValue = `session=${session.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
-        30 * 24 * 60 * 60
-      }`;
+    // Set secure cookie with proper attributes
+    let cookieValue = `session=${session.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
+      30 * 24 * 60 * 60
+    }`;
 
-      // Add secure flag in production
-      if (process.env.NODE_ENV === 'production') {
-        cookieValue += '; Secure';
-      }
-
-      res.setHeader('Set-Cookie', cookieValue);
-
-      // Redirect to dashboard
-      res.redirect('/');
-    } catch (dbOpError) {
-      return res.status(500).json({
-        error: 'Authentication failed',
-        details:
-          process.env.NODE_ENV === 'development'
-            ? (dbOpError as Error).message
-            : undefined,
-      });
-    } finally {
-      // Always disconnect from database
-      try {
-        await prisma.$disconnect();
-      } catch {
-        // Ignore disconnect errors
-      }
+    // Add secure flag in production
+    if (process.env.NODE_ENV === 'production') {
+      cookieValue += '; Secure';
     }
+
+    res.setHeader('Set-Cookie', cookieValue);
+
+    // Redirect to dashboard
+    res.redirect('/');
   } catch (error) {
     return res.status(500).json({
       error: 'Internal server error during authentication',

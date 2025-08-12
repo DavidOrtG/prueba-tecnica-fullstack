@@ -1,16 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/auth/config';
 
-// Helper function to test database connection
-const testDatabaseConnection = async () => {
-  try {
-    await prisma.$connect();
-    return { success: true };
-  } catch (error) {
-    return { success: false, error };
-  }
-};
-
 // Helper function to find session
 const findSession = async (sessionToken: string) =>
   await prisma.session.findUnique({
@@ -33,16 +23,6 @@ export default async function handler(
 
     if (!sessionToken) {
       return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    // Test database connection first
-    const dbTest = await testDatabaseConnection();
-    if (!dbTest.success) {
-      // If database connection fails, return 401 instead of 500
-      // This prevents the frontend from getting confused about authentication state
-      return res.status(401).json({
-        error: 'Authentication service unavailable',
-      });
     }
 
     // Find session in database
@@ -77,12 +57,5 @@ export default async function handler(
     }
 
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    // Always disconnect from database
-    try {
-      await prisma.$disconnect();
-    } catch {
-      // Ignore disconnect errors
-    }
   }
 }

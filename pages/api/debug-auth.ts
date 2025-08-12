@@ -43,7 +43,5 @@ export default async function handler(
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
