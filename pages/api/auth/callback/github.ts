@@ -49,6 +49,174 @@ import { prisma } from '@/lib/auth/config';
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
+// Helper function to validate environment variables
+const validateEnvironment = (): void => {
+  if (
+    !process.env.GITHUB_ID ||
+    !process.env.GITHUB_SECRET ||
+    !process.env.DATABASE_URL
+  ) {
+    throw new Error('Missing required environment variables');
+  }
+};
+
+// Helper function to test database connection
+const testDatabaseConnection = async (): Promise<void> => {
+  try {
+    await prisma.$connect();
+  } catch (dbError) {
+    throw new Error(
+      `Database connection failed: ${(dbError as Error).message}`
+    );
+  }
+};
+
+// Helper function to exchange code for access token
+const exchangeCodeForToken = async (code: string): Promise<string> => {
+  const tokenResponse = await fetch(
+    'https://github.com/login/oauth/access_token',
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.GITHUB_ID,
+        client_secret: process.env.GITHUB_SECRET,
+        code,
+      }),
+    }
+  );
+
+  if (!tokenResponse.ok) {
+    throw new Error(
+      `Failed to get access token from GitHub: ${tokenResponse.status}`
+    );
+  }
+
+  const tokenData = await tokenResponse.json();
+
+  if (tokenData.error) {
+    throw new Error(
+      `GitHub error: ${tokenData.error_description || tokenData.error}`
+    );
+  }
+
+  const accessToken = tokenData.access_token;
+
+  if (!accessToken) {
+    throw new Error('No access token received from GitHub');
+  }
+
+  return accessToken;
+};
+
+// Helper function to get user data from GitHub
+const getUserData = async (
+  accessToken: string
+): Promise<Record<string, unknown>> => {
+  const userResponse = await fetch('https://api.github.com/user', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!userResponse.ok) {
+    throw new Error(
+      `Failed to get user data from GitHub: ${userResponse.status}`
+    );
+  }
+
+  const userData = await userResponse.json();
+
+  if (!userData.id || !userData.login) {
+    throw new Error('Invalid user data from GitHub');
+  }
+
+  return userData;
+};
+
+// Helper function to get user email
+const getUserEmail = async (
+  accessToken: string,
+  userData: Record<string, unknown>
+): Promise<string> => {
+  let userEmail = userData.email as string;
+
+  if (!userEmail) {
+    const emailsResponse = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (emailsResponse.ok) {
+      const emailsData = await emailsResponse.json();
+      const primaryEmail = emailsData.find(
+        (email: { primary: boolean; email: string }) => email.primary
+      );
+      userEmail = primaryEmail
+        ? primaryEmail.email
+        : `${userData.login}@users.noreply.github.com`;
+    } else {
+      userEmail = `${userData.login}@users.noreply.github.com`;
+    }
+  }
+
+  return userEmail;
+};
+
+// Helper function to create or update user
+const createOrUpdateUser = async (
+  userData: Record<string, unknown>,
+  userEmail: string
+) => {
+  const userId = userData.id as string | number;
+  return await prisma.user.upsert({
+    where: { id: userId.toString() },
+    update: {
+      name: (userData.name as string) || (userData.login as string),
+      email: userEmail,
+      image: userData.avatar_url as string,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: userId.toString(),
+      name: (userData.name as string) || (userData.login as string),
+      email: userEmail,
+      image: userData.avatar_url as string,
+      role: 'ADMIN', // Default to admin for testing
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+};
+
+// Helper function to create session
+const createSession = async (userId: string, req: NextApiRequest) => {
+  const sessionToken = `session_${Date.now()}`;
+  return await prisma.session.create({
+    data: {
+      id: sessionToken,
+      token: `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      ipAddress:
+        (req.headers['x-forwarded-for'] as string) ||
+        req.socket.remoteAddress ||
+        'unknown',
+      userAgent: req.headers['user-agent'] || 'unknown',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -60,19 +228,6 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Validate environment variables
-  if (!process.env.GITHUB_ID || !process.env.GITHUB_SECRET || !process.env.DATABASE_URL) {
-    console.error('Missing required environment variables:', {
-      GITHUB_ID: !!process.env.GITHUB_ID,
-      GITHUB_SECRET: !!process.env.GITHUB_SECRET,
-      DATABASE_URL: !!process.env.DATABASE_URL,
-    });
-    return res.status(500).json({ 
-      error: 'Server configuration error',
-      details: process.env.NODE_ENV === 'development' ? 'Missing environment variables' : undefined
-    });
-  }
-
   const { code } = query;
 
   if (!code || typeof code !== 'string') {
@@ -80,175 +235,51 @@ export default async function handler(
   }
 
   try {
-    // Test database connection first
-    try {
-      await prisma.$connect();
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return res.status(500).json({ 
-        error: 'Database connection failed',
-        details: process.env.NODE_ENV === 'development' ? (dbError as Error).message : undefined
-      });
-    }
+    // Validate environment variables
+    validateEnvironment();
+
+    // Test database connection
+    await testDatabaseConnection();
 
     // Step 1: Exchange code for access token
-    const tokenResponse = await fetch(
-      'https://github.com/login/oauth/access_token',
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: process.env.GITHUB_ID,
-          client_secret: process.env.GITHUB_SECRET,
-          code,
-        }),
-      }
-    );
-
-    if (!tokenResponse.ok) {
-      console.error('GitHub token response not ok:', {
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
-      });
-      return res.status(400).json({
-        error: 'Failed to get access token from GitHub',
-        details: process.env.NODE_ENV === 'development' ? `Status: ${tokenResponse.status}` : undefined
-      });
-    }
-
-    const tokenData = await tokenResponse.json();
-
-    if (tokenData.error) {
-      console.error('GitHub token error:', tokenData);
-      return res.status(400).json({
-        error: `GitHub error: ${tokenData.error_description || tokenData.error}`,
-      });
-    }
-
-    const accessToken = tokenData.access_token;
-
-    if (!accessToken) {
-      console.error('No access token in response:', tokenData);
-      return res.status(400).json({
-        error: 'No access token received from GitHub',
-      });
-    }
+    const accessToken = await exchangeCodeForToken(code);
 
     // Step 2: Get user info from GitHub
-    const userResponse = await fetch('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
+    const userData = await getUserData(accessToken);
 
-    if (!userResponse.ok) {
-      console.error('GitHub user response not ok:', {
-        status: userResponse.status,
-        statusText: userResponse.statusText,
-      });
-      return res.status(400).json({
-        error: 'Failed to get user data from GitHub',
-        details: process.env.NODE_ENV === 'development' ? `Status: ${userResponse.status}` : undefined
-      });
-    }
-
-    const userData = await userResponse.json();
-
-    if (!userData.id || !userData.login) {
-      console.error('Invalid user data:', userData);
-      return res.status(400).json({
-        error: 'Invalid user data from GitHub',
-      });
-    }
-
-    // Step 3: Get user emails (fallback if primary email not returned)
-    let userEmail = userData.email;
-
-    if (!userEmail) {
-      const emailsResponse = await fetch('https://api.github.com/user/emails', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-
-      if (emailsResponse.ok) {
-        const emailsData = await emailsResponse.json();
-        const primaryEmail = emailsData.find(
-          (email: { primary: boolean; email: string }) => email.primary
-        );
-        userEmail = primaryEmail
-          ? primaryEmail.email
-          : `${userData.login}@users.noreply.github.com`;
-      } else {
-        userEmail = `${userData.login}@users.noreply.github.com`;
-      }
-    }
+    // Step 3: Get user email
+    const userEmail = await getUserEmail(accessToken, userData);
 
     // Step 4: Create or update user in database
     try {
-      const user = await prisma.user.upsert({
-        where: { id: userData.id.toString() },
-        update: {
-          name: userData.name || userData.login,
-          email: userEmail,
-          image: userData.avatar_url,
-          updatedAt: new Date(),
-        },
-        create: {
-          id: userData.id.toString(),
-          name: userData.name || userData.login,
-          email: userEmail,
-          image: userData.avatar_url,
-          role: 'ADMIN', // Default to admin for testing
-          emailVerified: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
+      const user = await createOrUpdateUser(userData, userEmail);
 
       // Step 5: Create session
-      const sessionToken = `session_${Date.now()}`;
-      await prisma.session.create({
-        data: {
-          id: sessionToken,
-          token: `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-          ipAddress:
-            (req.headers['x-forwarded-for'] as string) ||
-            req.socket.remoteAddress ||
-            'unknown',
-          userAgent: req.headers['user-agent'] || 'unknown',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
+      await createSession(user.id, req);
 
       // Step 6: Set session cookie and redirect
       res.setHeader(
         'Set-Cookie',
-        `session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}`
+        `session=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
+          30 * 24 * 60 * 60
+        }`
       );
 
       // Redirect to dashboard
       res.redirect('/');
     } catch (dbOpError) {
-      console.error('Database operation failed:', dbOpError);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Database operation failed',
-        details: process.env.NODE_ENV === 'development' ? (dbOpError as Error).message : undefined
+        details:
+          process.env.NODE_ENV === 'development'
+            ? (dbOpError as Error).message
+            : undefined,
       });
     } finally {
       // Always disconnect from database
       await prisma.$disconnect();
     }
   } catch (error) {
-    console.error('Unexpected error in GitHub callback:', error);
     return res.status(500).json({
       error: 'Internal server error during authentication',
       details:

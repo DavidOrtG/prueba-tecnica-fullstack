@@ -25,9 +25,9 @@ export default async function handler(
       await prisma.$connect();
       dbStatus = 'connected';
       await prisma.$disconnect();
-    } catch (error) {
+    } catch {
       dbStatus = 'error';
-      console.error('Database connection error:', error);
+      // Log error for debugging but don't expose in response
     }
 
     const health = {
@@ -40,11 +40,13 @@ export default async function handler(
 
     res.status(200).json(health);
   } catch (error) {
-    console.error('Health check error:', error);
     res.status(500).json({
       status: 'error',
       error: 'Health check failed',
-      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
+      details:
+        process.env.NODE_ENV === 'development'
+          ? (error as Error).message
+          : undefined,
     });
   }
 }

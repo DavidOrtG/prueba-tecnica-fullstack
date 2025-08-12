@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Navigation } from '@/components/Navigation';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,9 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+
 import {
   Table,
   TableBody,
@@ -24,7 +23,12 @@ import { Modal } from '@/components/ui/modal';
 import { Transaction } from '@/lib/types';
 import { formatCurrency, formatDateShort, toDateInputValue } from '@/lib/utils';
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import {
+  useForm,
+  UseFormRegister,
+  FieldErrors,
+  UseFormHandleSubmit,
+} from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
@@ -36,6 +40,111 @@ const transactionSchema = z.object({
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
+
+// Separate component for the transaction form
+const TransactionForm = ({
+  onSubmit,
+  register,
+  errors,
+  isLoading,
+  handleSubmit,
+  onCancel,
+}: {
+  onSubmit: (data: TransactionFormData) => void;
+  register: UseFormRegister<TransactionFormData>;
+  errors: FieldErrors<TransactionFormData>;
+  isLoading: boolean;
+  handleSubmit: UseFormHandleSubmit<TransactionFormData>;
+  onCancel: () => void;
+}) => (
+  <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+    <div>
+      <label
+        htmlFor='concept'
+        className='block text-sm font-medium text-gray-700'
+      >
+        Concepto
+      </label>
+      <input
+        {...register('concept')}
+        type='text'
+        id='concept'
+        className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+      />
+      {errors.concept && (
+        <p className='mt-1 text-sm text-red-600'>{errors.concept.message}</p>
+      )}
+    </div>
+
+    <div>
+      <label
+        htmlFor='amount'
+        className='block text-sm font-medium text-gray-700'
+      >
+        Monto
+      </label>
+      <input
+        {...register('amount', { valueAsNumber: true })}
+        type='number'
+        step='0.01'
+        id='amount'
+        className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+      />
+      {errors.amount && (
+        <p className='mt-1 text-sm text-red-600'>{errors.amount.message}</p>
+      )}
+    </div>
+
+    <div>
+      <label htmlFor='type' className='block text-sm font-medium text-gray-700'>
+        Tipo
+      </label>
+      <select
+        {...register('type')}
+        id='type'
+        className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+      >
+        <option value='EXPENSE'>Gasto</option>
+        <option value='INCOME'>Ingreso</option>
+      </select>
+      {errors.type && (
+        <p className='mt-1 text-sm text-red-600'>{errors.type.message}</p>
+      )}
+    </div>
+
+    <div>
+      <label htmlFor='date' className='block text-sm font-medium text-gray-700'>
+        Fecha
+      </label>
+      <input
+        {...register('date')}
+        type='date'
+        id='date'
+        className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+      />
+      {errors.date && (
+        <p className='mt-1 text-sm text-red-600'>{errors.date.message}</p>
+      )}
+    </div>
+
+    <div className='flex justify-end space-x-3'>
+      <button
+        type='button'
+        onClick={onCancel}
+        className='rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+      >
+        Cancelar
+      </button>
+      <button
+        type='submit'
+        disabled={isLoading}
+        className='inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50'
+      >
+        {isLoading ? 'Guardando...' : 'Guardar'}
+      </button>
+    </div>
+  </form>
+);
 
 const Transactions = () => {
   const { session, loading, isAdmin } = useAuth();
@@ -76,6 +185,37 @@ const Transactions = () => {
     }
   };
 
+  // Helper function to prepare request data
+  const prepareRequestData = (data: TransactionFormData) => {
+    if (editingTransaction) {
+      return data;
+    }
+    return { ...data, userId: session?.user?.id };
+  };
+
+  // Helper function to get request URL and method
+  const getRequestConfig = () => {
+    const url = editingTransaction
+      ? `/api/transactions/${editingTransaction.id}`
+      : '/api/transactions';
+    const method = editingTransaction ? 'PUT' : 'POST';
+    return { url, method };
+  };
+
+  // Helper function to handle successful submission
+  const handleSuccessfulSubmission = () => {
+    setIsModalOpen(false);
+    reset();
+    setEditingTransaction(null);
+    fetchTransactions();
+  };
+
+  // Helper function to handle error response
+  const handleErrorResponse = async (response: Response) => {
+    const errorData = await response.json();
+    alert(`Error: ${errorData.error || 'Failed to save transaction'}`);
+  };
+
   const onSubmit = async (data: TransactionFormData) => {
     setIsLoading(true);
     try {
@@ -85,16 +225,8 @@ const Transactions = () => {
         return;
       }
 
-      const url = editingTransaction
-        ? `/api/transactions/${editingTransaction.id}`
-        : '/api/transactions';
-
-      const method = editingTransaction ? 'PUT' : 'POST';
-
-      // For new transactions, include the current user's ID
-      const requestData = editingTransaction
-        ? data
-        : { ...data, userId: session.user.id };
+      const { url, method } = getRequestConfig();
+      const requestData = prepareRequestData(data);
 
       const response = await fetch(url, {
         method,
@@ -103,14 +235,9 @@ const Transactions = () => {
       });
 
       if (response.ok) {
-        setIsModalOpen(false);
-        reset();
-        setEditingTransaction(null);
-        fetchTransactions();
+        handleSuccessfulSubmission();
       } else {
-        // Handle error response
-        const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'Failed to save transaction'}`);
+        await handleErrorResponse(response);
       }
     } catch {
       alert('Error saving transaction. Please try again.');
@@ -311,87 +438,18 @@ const Transactions = () => {
         title={editingTransaction ? 'Editar Movimiento' : 'Nuevo Movimiento'}
         size='md'
       >
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Concepto
-            </label>
-            <Input
-              {...register('concept')}
-              placeholder='Descripción del movimiento'
-              className={errors.concept ? 'border-red-500' : ''}
-            />
-            {errors.concept && (
-              <p className='text-red-500 text-sm mt-1'>
-                {errors.concept.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Monto
-            </label>
-            <Input
-              {...register('amount', { valueAsNumber: true })}
-              type='number'
-              step='0.01'
-              min='0'
-              placeholder='0.00'
-              className={errors.amount ? 'border-red-500' : ''}
-            />
-            {errors.amount && (
-              <p className='text-red-500 text-sm mt-1'>
-                {errors.amount.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Tipo
-            </label>
-            <Select {...register('type')}>
-              <option value='INCOME'>Ingreso</option>
-              <option value='EXPENSE'>Gasto</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Fecha
-            </label>
-            <Input
-              {...register('date')}
-              type='date'
-              className={errors.date ? 'border-red-500' : ''}
-            />
-            {errors.date && (
-              <p className='text-red-500 text-sm mt-1'>{errors.date.message}</p>
-            )}
-          </div>
-
-          <div className='flex justify-end space-x-3 pt-4'>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingTransaction(null);
-                reset();
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button type='submit' disabled={isLoading}>
-              {(() => {
-                if (isLoading) return 'Guardando...';
-                if (editingTransaction) return 'Actualizar';
-                return 'Guardar';
-              })()}
-            </Button>
-          </div>
-        </form>
+        <TransactionForm
+          onSubmit={onSubmit}
+          register={register}
+          errors={errors}
+          isLoading={isLoading}
+          handleSubmit={handleSubmit}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setEditingTransaction(null);
+            reset();
+          }}
+        />
       </Modal>
     </div>
   );
