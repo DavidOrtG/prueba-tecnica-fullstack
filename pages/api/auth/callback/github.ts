@@ -230,11 +230,9 @@ const testDatabaseConnectionWithErrorHandling = async () => {
 // Helper function to handle database operations
 const handleDatabaseOperations = async (
   userData: Record<string, unknown>,
-  userEmail: string,
-  req: NextApiRequest
+  userEmail: string
 ) => {
   const user = await createOrUpdateUser(userData, userEmail);
-  await createSession(user.id, req);
   return user;
 };
 
@@ -282,15 +280,22 @@ export default async function handler(
 
     // Step 4: Create or update user in database
     try {
-      const user = await handleDatabaseOperations(userData, userEmail, req);
+      const user = await handleDatabaseOperations(userData, userEmail);
 
       // Step 6: Set session cookie and redirect
-      res.setHeader(
-        'Set-Cookie',
-        `session=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
-          30 * 24 * 60 * 60
-        }`
-      );
+      const session = await createSession(user.id, req);
+
+      // Set secure cookie with proper attributes
+      let cookieValue = `session=${session.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
+        30 * 24 * 60 * 60
+      }`;
+
+      // Add secure flag in production
+      if (process.env.NODE_ENV === 'production') {
+        cookieValue += '; Secure';
+      }
+
+      res.setHeader('Set-Cookie', cookieValue);
 
       // Redirect to dashboard
       res.redirect('/');
