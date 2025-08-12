@@ -384,11 +384,11 @@ const Transactions = () => {
               Cancelar
             </Button>
             <Button type='submit' disabled={isLoading}>
-              {isLoading
-                ? 'Guardando...'
-                : editingTransaction
-                  ? 'Actualizar'
-                  : 'Guardar'}
+              {(() => {
+                if (isLoading) return 'Guardando...';
+                if (editingTransaction) return 'Actualizar';
+                return 'Guardar';
+              })()}
             </Button>
           </div>
         </form>

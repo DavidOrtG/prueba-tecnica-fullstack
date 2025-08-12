@@ -51,20 +51,20 @@ const APIDocs = () => {
           </p>
         </div>
 
-        {loading ? (
+        {loading && (
           <div className='flex items-center justify-center min-h-screen'>
             <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900'></div>
           </div>
-        ) : error ? (
+        )}
+        {!loading && error && (
           <div className='flex items-center justify-center min-h-screen'>
             <div className='text-center'>
               <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
               <p className='text-gray-600'>{error}</p>
             </div>
           </div>
-        ) : spec ? (
-          <SwaggerUI spec={spec} />
-        ) : null}
+        )}
+        {!loading && !error && spec && <SwaggerUI spec={spec} />}
       </div>
     </div>
   );

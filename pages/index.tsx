@@ -55,9 +55,9 @@ const Dashboard = () => {
           <div className='animate-pulse'>
             <div className='h-8 bg-gray-200 rounded w-1/4 mb-8'></div>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-              {[...Array(4)].map((_, i) => (
+              {Array.from({ length: 4 }, (_, i) => (
                 <div
-                  key={`loading-skeleton-${i}`}
+                  key={`loading-skeleton-${Date.now()}-${i}`}
                   className='h-32 bg-gray-200 rounded'
                 ></div>
               ))}

@@ -142,7 +142,9 @@ export const exportToCSV = (
     const headers = Object.keys(data[0] || {});
     const csvContent = [
       headers.join(','),
-      ...data.map((row) => headers.map((header) => `"${row[header]}"`).join(',')),
+      ...data.map((row) =>
+        headers.map((header) => `"${row[header]}"`).join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -155,7 +157,7 @@ export const exportToCSV = (
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error exporting CSV:', error);
+  } catch {
+    // Silently handle CSV export errors
   }
 };

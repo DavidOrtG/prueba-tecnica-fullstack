@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Navigation } from '@/components/Navigation';
 import {
@@ -50,20 +50,20 @@ const Reports = () => {
     totalTransactions: 0,
   });
 
-  useEffect(() => {
-    if (session && isAdmin) {
-      fetchTransactions();
-    }
-  }, [session, isAdmin]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     const response = await fetch('/api/transactions');
     if (response.ok) {
       const data = await response.json();
       setTransactions(data);
       calculateSummary(data);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (session && isAdmin) {
+      fetchTransactions();
+    }
+  }, [session, isAdmin, fetchTransactions]);
 
   const calculateSummary = (data: Transaction[]) => {
     const totalIncome = data
