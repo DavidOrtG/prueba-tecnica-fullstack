@@ -217,6 +217,27 @@ const createSession = async (userId: string, req: NextApiRequest) => {
   });
 };
 
+// Helper function to handle database connection test
+const testDatabaseConnectionWithErrorHandling = async () => {
+  try {
+    await testDatabaseConnection();
+    return { success: true };
+  } catch (dbError) {
+    return { success: false, error: dbError };
+  }
+};
+
+// Helper function to handle database operations
+const handleDatabaseOperations = async (
+  userData: Record<string, unknown>,
+  userEmail: string,
+  req: NextApiRequest
+) => {
+  const user = await createOrUpdateUser(userData, userEmail);
+  await createSession(user.id, req);
+  return user;
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -238,8 +259,17 @@ export default async function handler(
     // Validate environment variables
     validateEnvironment();
 
-    // Test database connection
-    await testDatabaseConnection();
+    // Test database connection first
+    const dbTest = await testDatabaseConnectionWithErrorHandling();
+    if (!dbTest.success) {
+      return res.status(500).json({
+        error: 'Authentication service unavailable',
+        details:
+          process.env.NODE_ENV === 'development'
+            ? 'Database connection failed'
+            : undefined,
+      });
+    }
 
     // Step 1: Exchange code for access token
     const accessToken = await exchangeCodeForToken(code);
@@ -252,10 +282,7 @@ export default async function handler(
 
     // Step 4: Create or update user in database
     try {
-      const user = await createOrUpdateUser(userData, userEmail);
-
-      // Step 5: Create session
-      await createSession(user.id, req);
+      const user = await handleDatabaseOperations(userData, userEmail, req);
 
       // Step 6: Set session cookie and redirect
       res.setHeader(
@@ -269,7 +296,7 @@ export default async function handler(
       res.redirect('/');
     } catch (dbOpError) {
       return res.status(500).json({
-        error: 'Database operation failed',
+        error: 'Authentication failed',
         details:
           process.env.NODE_ENV === 'development'
             ? (dbOpError as Error).message
@@ -277,7 +304,11 @@ export default async function handler(
       });
     } finally {
       // Always disconnect from database
-      await prisma.$disconnect();
+      try {
+        await prisma.$disconnect();
+      } catch {
+        // Ignore disconnect errors
+      }
     }
   } catch (error) {
     return res.status(500).json({

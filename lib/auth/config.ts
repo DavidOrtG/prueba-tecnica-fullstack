@@ -7,6 +7,11 @@ const prisma = new PrismaClient({
       ? ['query', 'error', 'warn']
       : ['error'],
   errorFormat: 'pretty',
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
 });
 
 // Validate required environment variables
@@ -29,6 +34,22 @@ if (missingVars.length > 0) {
     );
   }
 }
+
+// Test database connection on startup
+const testConnection = async () => {
+  try {
+    await prisma.$connect();
+    // Connection successful
+  } catch (error) {
+    // Don't throw in production, let the app start and handle errors gracefully
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
+  }
+};
+
+// Test connection on startup
+testConnection();
 
 // Handle graceful shutdown
 process.on('beforeExit', async () => {
