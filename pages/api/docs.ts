@@ -19,7 +19,7 @@ const options = {
       {
         url:
           process.env.NODE_ENV === 'production'
-            ? 'https://your-app.vercel.app'
+            ? 'https://prueba-tecnica-fullstack-8ofl.vercel.app'
             : 'http://localhost:3000',
         description:
           process.env.NODE_ENV === 'production'
