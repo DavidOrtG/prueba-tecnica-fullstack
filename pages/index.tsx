@@ -86,7 +86,10 @@ export default function Home() {
             Dashboard
           </h1>
           <p className="text-gray-600 mt-2">
-            Resumen general de tu sistema financiero
+            {isAdmin 
+              ? 'Resumen general de tu sistema financiero'
+              : 'Resumen de tus finanzas personales (solo lectura)'
+            }
           </p>
         </div>
 

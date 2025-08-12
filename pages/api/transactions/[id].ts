@@ -10,11 +10,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Verificar que sea admin
-    if (session.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
-
     const { method } = req;
     const { id } = req.query;
 
@@ -23,7 +18,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     switch (method) {
+      case 'GET':
+        // GET: Allow users to view their own transactions, or admins to view any
+        const transaction = await prisma.transaction.findUnique({
+          where: { id },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        });
+
+        if (!transaction) {
+          return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        // Check if user can view this transaction
+        if (session.user.role !== 'ADMIN' && transaction.userId !== session.user.id) {
+          return res.status(403).json({ error: 'Forbidden: You can only view your own transactions' });
+        }
+
+        res.json(transaction);
+        break;
+
       case 'PUT':
+        // PUT: Only admin users can modify transactions
+        if (session.user.role !== 'ADMIN') {
+          return res.status(403).json({ error: 'Forbidden: Admin access required to modify transactions' });
+        }
+
         const { concept, amount, type, date } = req.body;
 
         // Validar datos
@@ -65,6 +93,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       case 'DELETE':
+        // DELETE: Only admin users can delete transactions
+        if (session.user.role !== 'ADMIN') {
+          return res.status(403).json({ error: 'Forbidden: Admin access required to delete transactions' });
+        }
+
         // Verificar que la transacción existe
         const transactionToDelete = await prisma.transaction.findUnique({
           where: { id },
@@ -83,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       default:
-        res.setHeader('Allow', ['PUT', 'DELETE']);
+        res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
         res.status(405).json({ error: `Method ${method} Not Allowed` });
     }
   } catch (error) {

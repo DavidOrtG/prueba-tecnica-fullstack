@@ -164,7 +164,10 @@ export default function UsersPage() {
             Gestión de Usuarios
           </h1>
           <p className="text-gray-600 mt-2">
-            Administra usuarios y sus roles en el sistema
+            {isAdmin 
+              ? 'Administra usuarios y sus roles en el sistema'
+              : 'Visualiza tu perfil de usuario (solo lectura)'
+            }
           </p>
         </div>
 
@@ -175,7 +178,10 @@ export default function UsersPage() {
               <span>Lista de Usuarios</span>
             </CardTitle>
             <CardDescription>
-              Gestiona los usuarios del sistema y sus permisos
+              {isAdmin 
+                ? 'Gestiona los usuarios del sistema y sus permisos'
+                : 'Lista de usuarios registrados en el sistema'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -187,7 +193,7 @@ export default function UsersPage() {
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Fecha de Registro</TableHead>
-                  <TableHead>Acciones</TableHead>
+                  {isAdmin && <TableHead>Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -215,16 +221,18 @@ export default function UsersPage() {
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString('es-CO')}
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </Button>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(user)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

@@ -1,6 +1,54 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../../lib/auth/config';
 
+/**
+ * @swagger
+ * /api/auth/callback/github:
+ *   get:
+ *     summary: Callback de autenticación GitHub
+ *     description: |
+ *       Maneja el callback de OAuth de GitHub después de la autorización.
+ *       Este endpoint:
+ *       1. Intercambia el código de autorización por un token de acceso
+ *       2. Obtiene la información del usuario desde GitHub
+ *       3. Crea o actualiza el usuario en la base de datos
+ *       4. Crea una sesión y establece la cookie de sesión
+ *       5. Redirige al dashboard
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código de autorización de GitHub
+ *       - in: query
+ *         name: state
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Estado de la solicitud OAuth
+ *     responses:
+ *       302:
+ *         description: Redirección exitosa al dashboard
+ *         headers:
+ *           Set-Cookie:
+ *             description: Cookie de sesión establecida
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Código de autorización inválido o faltante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Error interno del servidor durante la autenticación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method, query } = req;
 

@@ -1,286 +1,217 @@
-# Sistema de Gestión Financiera
+# 🚀 Prueba Técnica Fullstack - Sistema de Gestión Financiera
 
-Una aplicación fullstack completa para la gestión de ingresos y gastos con autenticación, roles y permisos, desarrollada con Next.js, TypeScript, Prisma y PostgreSQL.
+Un sistema completo de gestión financiera construido con Next.js, TypeScript, Tailwind CSS y PostgreSQL.
 
-## 🚀 Características
+## ✨ **Características Principales**
 
-- **Autenticación**: Sistema de autenticación con GitHub OAuth usando Better Auth
-- **Roles y Permisos**: Control de acceso basado en roles (RBAC) con usuarios y administradores
-- **Gestión de Transacciones**: CRUD completo para ingresos y gastos
-- **Gestión de Usuarios**: Administración de usuarios y roles (solo para administradores)
-- **Reportes**: Gráficos y análisis financieros con exportación a CSV
-- **API REST**: Endpoints completamente documentados con OpenAPI/Swagger
-- **Base de Datos**: PostgreSQL con Prisma ORM
-- **UI Moderna**: Interfaz construida con Tailwind CSS y componentes shadcn/ui
-- **Pruebas Unitarias**: Cobertura de pruebas con Jest y React Testing Library
+- 🔐 **Autenticación OAuth** con GitHub
+- 👥 **Control de Acceso Basado en Roles** (ADMIN/USER)
+- 💰 **Gestión de Transacciones** (Ingresos y Gastos)
+- 📊 **Dashboard Financiero** con resúmenes
+- 👤 **Gestión de Usuarios** (solo administradores)
+- 📚 **Documentación de API** completa con OpenAPI/Swagger
+- 🎨 **Interfaz Moderna** con Shadcn/UI y Tailwind CSS
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ **Stack Tecnológico**
 
 ### Frontend
-- **Next.js 15** con Pages Router
-- **TypeScript**
-- **Tailwind CSS**
-- **shadcn/ui** para componentes
-- **React Hook Form** para formularios
-- **Recharts** para gráficos
-- **Lucide React** para iconos
+- ✅ **Next.js** con Pages Router
+- ✅ **TypeScript**
+- ✅ **Tailwind CSS**
+- ✅ **Shadcn/UI** para componentes
+- ✅ **NextJS API routes** para comunicación
 
 ### Backend
-- **Next.js API Routes**
-- **Better Auth** para autenticación
-- **Prisma** como ORM
-- **PostgreSQL** como base de datos
+- ✅ **NextJS API routes** para endpoints REST
+- ✅ **PostgreSQL** en Supabase
+- ✅ **Prisma ORM**
+- ✅ **Better-Auth** para autenticación
+- ✅ **OpenAPI/Swagger** para documentación
 
-### Testing
-- **Jest** como framework de pruebas
-- **React Testing Library** para pruebas de componentes
-- **Cobertura de pruebas** configurada
+## 🚀 **Despliegue en Vercel**
 
-## 📋 Requisitos Previos
-
-- **Node.js** 18.0 o superior
-- **npm**, **yarn** o **bun** como gestor de paquetes
-- **PostgreSQL** 12 o superior
-- **Cuenta de GitHub** para OAuth
-
-## 🚀 Instalación
-
-### 1. Clonar el repositorio
+### 1. **Preparación del Proyecto**
 
 ```bash
-git clone <url-del-repositorio>
+# Clonar el repositorio
+git clone <tu-repositorio>
 cd prueba-tecnica-fullstack
-```
 
-### 2. Instalar dependencias
-
-```bash
-# Con npm
+# Instalar dependencias
 npm install
 
-# Con yarn
-yarn install
-
-# Con bun
-bun install
+# Configurar variables de entorno
+cp .env.example .env.local
 ```
 
-### 3. Configurar variables de entorno
+### 2. **Variables de Entorno Requeridas**
 
-Crear un archivo `.env.local` en la raíz del proyecto:
+Crea un archivo `.env.local` con las siguientes variables:
 
 ```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/prueba_tecnica"
+# Base de datos
+DATABASE_URL="postgresql://username:password@host:port/database"
 
 # GitHub OAuth
-GITHUB_ID="your_github_client_id"
-GITHUB_SECRET="your_github_client_secret"
+GITHUB_ID="tu_github_client_id"
+GITHUB_SECRET="tu_github_client_secret"
 
-# NextAuth
+# Next.js
+NEXTAUTH_SECRET="tu_secret_aleatorio"
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your_nextauth_secret_key"
 ```
 
-### 4. Configurar GitHub OAuth
+### 3. **Configuración de Supabase**
 
-1. Ir a [GitHub Developer Settings](https://github.com/settings/developers)
-2. Crear una nueva OAuth App
-3. Configurar:
-   - **Application name**: Sistema de Gestión Financiera
-   - **Homepage URL**: `http://localhost:3000`
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
-4. Copiar el Client ID y Client Secret al archivo `.env.local`
-
-### 5. Configurar la base de datos
+1. Crea una cuenta en [Supabase](https://supabase.com)
+2. Crea un nuevo proyecto
+3. Obtén la URL de conexión de la base de datos
+4. Ejecuta las migraciones de Prisma:
 
 ```bash
-# Generar el cliente de Prisma
-npm run db:generate
+# Generar cliente de Prisma
+npx prisma generate
 
-# Crear las tablas en la base de datos
-npm run db:push
+# Ejecutar migraciones
+npx prisma db push
 
-# (Opcional) Abrir Prisma Studio para ver los datos
-npm run db:studio
+# (Opcional) Ver datos en Supabase Studio
+npx prisma studio
 ```
 
-### 6. Ejecutar la aplicación
+### 4. **Configuración de GitHub OAuth**
 
-```bash
-# Modo desarrollo
-npm run dev
+1. Ve a [GitHub Developer Settings](https://github.com/settings/developers)
+2. Crea una nueva OAuth App
+3. Configura la URL de callback: `https://tu-app.vercel.app/api/auth/callback/github`
+4. Copia el Client ID y Client Secret
 
-# Construir para producción
-npm run build
+### 5. **Despliegue en Vercel**
 
-# Ejecutar en producción
-npm start
-```
-
-La aplicación estará disponible en `http://localhost:3000`
-
-## 🧪 Ejecutar Pruebas
-
-```bash
-# Ejecutar todas las pruebas
-npm test
-
-# Ejecutar pruebas en modo watch
-npm run test:watch
-
-# Ejecutar pruebas con cobertura
-npm run test:coverage
-```
-
-## 📚 Uso de la Aplicación
-
-### 1. Inicio de Sesión
-- Todos los nuevos usuarios se registran automáticamente como **ADMIN**
-- Usar GitHub OAuth para autenticación
-- No se requiere registro manual
-
-### 2. Dashboard Principal
-- Resumen de ingresos, gastos y balance
-- Acceso rápido a todas las funcionalidades
-- Estadísticas en tiempo real
-
-### 3. Gestión de Movimientos
-- **Usuarios**: Ver lista de transacciones
-- **Administradores**: Crear, editar y eliminar transacciones
-- Filtros por tipo (ingreso/gasto) y fecha
-
-### 4. Gestión de Usuarios (Solo Admin)
-- Ver lista de todos los usuarios
-- Editar nombres y roles
-- Asignar permisos de administrador
-
-### 5. Reportes (Solo Admin)
-- Gráficos de movimientos por mes
-- Distribución por categorías
-- Exportación de datos a CSV
-- Análisis de tendencias
-
-## 🔌 API Endpoints
-
-### Autenticación
-- `GET /api/auth/session` - Obtener sesión actual
-- `GET /api/auth/signin/github` - Iniciar sesión con GitHub
-- `POST /api/auth/signout` - Cerrar sesión
-
-### Transacciones
-- `GET /api/transactions` - Listar transacciones
-- `POST /api/transactions` - Crear transacción (Admin)
-- `PUT /api/transactions/[id]` - Actualizar transacción (Admin)
-- `DELETE /api/transactions/[id]` - Eliminar transacción (Admin)
-
-### Usuarios
-- `GET /api/users` - Listar usuarios (Admin)
-- `PUT /api/users/[id]` - Actualizar usuario (Admin)
-
-### Resumen
-- `GET /api/summary` - Obtener estadísticas del dashboard
-
-### Documentación
-- `GET /api/docs` - Documentación completa de la API
-
-## 🏗️ Estructura del Proyecto
-
-```
-prueba-tecnica-fullstack/
-├── components/          # Componentes reutilizables
-│   ├── ui/             # Componentes de UI base
-│   └── Navigation.tsx  # Navegación principal
-├── lib/                # Utilidades y configuración
-│   ├── auth/           # Configuración de autenticación
-│   ├── hooks/          # Hooks personalizados
-│   ├── types.ts        # Tipos de TypeScript
-│   └── utils.ts        # Funciones de utilidad
-├── pages/              # Páginas de la aplicación
-│   ├── api/            # API Routes
-│   ├── auth/           # Páginas de autenticación
-│   └── index.tsx       # Página principal
-├── prisma/             # Configuración de base de datos
-│   └── schema.prisma   # Esquema de Prisma
-├── styles/             # Estilos globales
-├── __tests__/          # Pruebas unitarias
-└── public/             # Archivos estáticos
-```
-
-## 🔒 Seguridad
-
-- **Autenticación obligatoria** para la mayoría de endpoints
-- **Control de acceso basado en roles** (RBAC)
-- **Validación de datos** con Zod
-- **Protección CSRF** integrada
-- **Sanitización de inputs** automática
-
-## 🚀 Despliegue en Vercel
-
-### 1. Preparar el proyecto
-
-```bash
-# Construir la aplicación
-npm run build
-
-# Verificar que no hay errores
-npm run lint
-```
-
-### 2. Configurar en Vercel
-
-1. Conectar el repositorio de GitHub
-2. Configurar variables de entorno:
+1. Conecta tu repositorio de GitHub a Vercel
+2. Configura las variables de entorno en Vercel:
    - `DATABASE_URL`
    - `GITHUB_ID`
    - `GITHUB_SECRET`
    - `NEXTAUTH_SECRET`
    - `NEXTAUTH_URL` (URL de producción)
 
-### 3. Desplegar
+3. Vercel detectará automáticamente que es un proyecto Next.js
+4. El build se ejecutará automáticamente
+
+### 6. **Post-Despliegue**
+
+1. Actualiza la URL de callback de GitHub con tu dominio de Vercel
+2. Verifica que la base de datos esté accesible desde Vercel
+3. Prueba la autenticación y funcionalidades principales
+
+## 📚 **Documentación de la API**
+
+### Endpoint de Documentación
+- **URL**: `/api/docs`
+- **Página Web**: `/docs`
+- **Formato**: OpenAPI 3.0 / Swagger
+
+### Endpoints Principales
+
+#### 🔐 Autenticación
+- `GET /api/auth/signin/github` - Iniciar sesión con GitHub
+- `GET /api/auth/callback/github` - Callback de OAuth
+- `GET /api/auth/signout` - Cerrar sesión
+
+#### 💰 Transacciones
+- `GET /api/transactions` - Obtener transacciones
+- `POST /api/transactions` - Crear transacción (solo admin)
+- `GET /api/transactions/[id]` - Obtener transacción específica
+- `PUT /api/transactions/[id]` - Actualizar transacción (solo admin)
+- `DELETE /api/transactions/[id]` - Eliminar transacción (solo admin)
+
+#### 📊 Resúmenes
+- `GET /api/summary` - Resumen financiero
+
+#### 👥 Usuarios
+- `GET /api/users` - Lista de usuarios
+- `GET /api/users/[id]` - Perfil de usuario específico
+- `PUT /api/users/[id]` - Actualizar usuario (solo admin)
+- `DELETE /api/users/[id]` - Eliminar usuario (solo admin)
+
+## 🔒 **Control de Acceso**
+
+### Usuarios Administradores (ADMIN)
+- ✅ Acceso completo a todas las funcionalidades
+- ✅ Pueden ver, crear, editar y eliminar transacciones
+- ✅ Pueden gestionar usuarios del sistema
+- ✅ Ven resúmenes financieros completos
+
+### Usuarios Regulares (USER)
+- ✅ Pueden ver solo sus propias transacciones
+- ✅ Pueden ver solo su propio resumen financiero
+- ✅ Pueden ver solo su propio perfil
+- ❌ No pueden modificar datos
+- ❌ No pueden acceder a funcionalidades administrativas
+
+## 🧪 **Pruebas**
 
 ```bash
-# Instalar Vercel CLI
-npm i -g vercel
+# Ejecutar pruebas unitarias
+npm test
 
-# Desplegar
-vercel --prod
+# Ejecutar pruebas en modo watch
+npm run test:watch
+
+# Ver cobertura de pruebas
+npm run test:coverage
 ```
 
-## 🐛 Solución de Problemas
+## 📁 **Estructura del Proyecto**
 
-### Error de conexión a la base de datos
-- Verificar que PostgreSQL esté ejecutándose
-- Confirmar que `DATABASE_URL` sea correcta
-- Ejecutar `npm run db:generate` y `npm run db:push`
+```
+prueba-tecnica-fullstack/
+├── components/          # Componentes reutilizables
+├── lib/                # Utilidades y configuración
+│   ├── auth/          # Configuración de autenticación
+│   └── hooks/         # Hooks personalizados
+├── pages/              # Páginas y API routes
+│   ├── api/           # Endpoints de la API
+│   └── ...            # Páginas del frontend
+├── prisma/             # Esquema y migraciones de BD
+├── __tests__/          # Pruebas unitarias
+└── public/             # Archivos estáticos
+```
 
-### Error de autenticación GitHub
-- Verificar que `GITHUB_ID` y `GITHUB_SECRET` sean correctos
-- Confirmar que la callback URL esté configurada correctamente
+## 🚨 **Solución de Problemas**
 
-### Errores de TypeScript
-- Ejecutar `npm run build` para ver errores de compilación
-- Verificar que todas las dependencias estén instaladas
+### Error de Conexión a Base de Datos
+- Verifica que `DATABASE_URL` esté correctamente configurada
+- Asegúrate de que Supabase permita conexiones desde Vercel
+- Verifica que las migraciones se hayan ejecutado
 
-## 📝 Notas de Desarrollo
+### Error de Autenticación GitHub
+- Verifica que `GITHUB_ID` y `GITHUB_SECRET` estén correctos
+- Asegúrate de que la URL de callback coincida con tu dominio
+- Verifica que la app OAuth esté configurada correctamente
 
-- **Todos los nuevos usuarios son ADMIN por defecto** para facilitar las pruebas
-- La aplicación **no es responsiva** según los requisitos
-- Se incluyen **3 pruebas unitarias** como mínimo requerido
-- **Documentación completa de la API** disponible en `/api/docs`
+### Error de Build en Vercel
+- Verifica que todas las variables de entorno estén configuradas
+- Revisa los logs de build en Vercel
+- Asegúrate de que las dependencias estén en `package.json`
 
-## 🤝 Contribución
+## 📞 **Soporte**
 
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+Para soporte técnico o preguntas sobre el despliegue:
+- Revisa los logs de Vercel
+- Verifica la configuración de variables de entorno
+- Consulta la documentación de la API en `/docs`
 
-## 📄 Licencia
+## 🎯 **Estado de Implementación**
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+- ✅ **Frontend**: Next.js + TypeScript + Tailwind + Shadcn
+- ✅ **Backend**: NextJS API routes + PostgreSQL + Prisma
+- ✅ **Autenticación**: GitHub OAuth + Better-Auth
+- ✅ **Base de Datos**: PostgreSQL en Supabase
+- ✅ **Documentación**: OpenAPI/Swagger en `/api/docs`
+- ✅ **Control de Acceso**: RBAC implementado
+- ✅ **Pruebas**: Unitarias implementadas
+- ✅ **Despliegue**: Listo para Vercel
 
-## 📞 Soporte
-
-Para soporte técnico o preguntas sobre el proyecto, por favor abrir un issue en el repositorio.
+¡Tu aplicación está lista para ser desplegada en Vercel! 🚀

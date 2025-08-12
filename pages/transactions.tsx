@@ -185,7 +185,10 @@ export default function Transactions() {
               Gestión de Movimientos
             </h1>
             <p className="text-gray-600 mt-2">
-              Administra todos los ingresos y gastos del sistema
+              {isAdmin 
+                ? 'Administra todos los ingresos y gastos del sistema'
+                : 'Visualiza tus ingresos y gastos personales (solo lectura)'
+              }
             </p>
           </div>
           {isAdmin && (

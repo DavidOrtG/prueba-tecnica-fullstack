@@ -66,6 +66,9 @@ export default function Navigation() {
                   <Link href="/reports" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                     Reportes
                   </Link>
+                  <Link href="/docs" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    API Docs
+                  </Link>
                 </>
               )}
             </div>

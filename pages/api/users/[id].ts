@@ -10,11 +10,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Verificar que sea admin
-    if (session.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
-
     const { method } = req;
     const { id } = req.query;
 
@@ -23,7 +18,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     switch (method) {
+      case 'GET':
+        // GET: Allow users to view their own profile, or admins to view any
+        const user = await prisma.user.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+            image: true,
+            role: true,
+            phone: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check if user can view this profile
+        if (session.user.role !== 'ADMIN' && user.id !== session.user.id) {
+          return res.status(403).json({ error: 'Forbidden: You can only view your own profile' });
+        }
+
+        res.json(user);
+        break;
+
       case 'PUT':
+        // PUT: Only admin users can modify users
+        if (session.user.role !== 'ADMIN') {
+          return res.status(403).json({ error: 'Forbidden: Admin access required to modify users' });
+        }
+
         const { name, role } = req.body;
 
         // Validar datos
@@ -64,6 +93,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       case 'DELETE':
+        // DELETE: Only admin users can delete users
+        if (session.user.role !== 'ADMIN') {
+          return res.status(403).json({ error: 'Forbidden: Admin access required to delete users' });
+        }
+
         // Verificar que el usuario existe
         const userToDelete = await prisma.user.findUnique({
           where: { id },
@@ -82,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       default:
-        res.setHeader('Allow', ['PUT', 'DELETE']);
+        res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
         res.status(405).json({ error: `Method ${method} Not Allowed` });
     }
   } catch (error) {
