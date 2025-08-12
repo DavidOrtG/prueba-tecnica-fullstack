@@ -84,13 +84,27 @@ export default async function handler(
       }
     );
 
+    if (!tokenResponse.ok) {
+      return res.status(400).json({
+        error: 'Failed to get access token from GitHub',
+      });
+    }
+
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      return res.status(400).json({ error: 'Failed to get access token' });
+      return res.status(400).json({
+        error: `GitHub error: ${tokenData.error_description || tokenData.error}`,
+      });
     }
 
     const accessToken = tokenData.access_token;
+
+    if (!accessToken) {
+      return res.status(400).json({
+        error: 'No access token received from GitHub',
+      });
+    }
 
     // Step 2: Get user info from GitHub
     const userResponse = await fetch('https://api.github.com/user', {
@@ -100,10 +114,18 @@ export default async function handler(
       },
     });
 
+    if (!userResponse.ok) {
+      return res.status(400).json({
+        error: 'Failed to get user data from GitHub',
+      });
+    }
+
     const userData = await userResponse.json();
 
     if (!userData.id || !userData.login) {
-      return res.status(400).json({ error: 'Invalid user data from GitHub' });
+      return res.status(400).json({
+        error: 'Invalid user data from GitHub',
+      });
     }
 
     // Step 3: Get user emails (fallback if primary email not returned)
@@ -117,63 +139,77 @@ export default async function handler(
         },
       });
 
-      const emailsData = await emailsResponse.json();
-      const primaryEmail = emailsData.find(
-        (email: { primary: boolean; email: string }) => email.primary
-      );
-      userEmail = primaryEmail
-        ? primaryEmail.email
-        : `${userData.login}@users.noreply.github.com`;
+      if (emailsResponse.ok) {
+        const emailsData = await emailsResponse.json();
+        const primaryEmail = emailsData.find(
+          (email: { primary: boolean; email: string }) => email.primary
+        );
+        userEmail = primaryEmail
+          ? primaryEmail.email
+          : `${userData.login}@users.noreply.github.com`;
+      } else {
+        userEmail = `${userData.login}@users.noreply.github.com`;
+      }
     }
 
     // Step 4: Create or update user in database
-    const user = await prisma.user.upsert({
-      where: { id: userData.id.toString() },
-      update: {
-        name: userData.name || userData.login,
-        email: userEmail,
-        image: userData.avatar_url,
-        updatedAt: new Date(),
-      },
-      create: {
-        id: userData.id.toString(),
-        name: userData.name || userData.login,
-        email: userEmail,
-        image: userData.avatar_url,
-        role: 'ADMIN', // Default to admin for testing
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+    try {
+      const user = await prisma.user.upsert({
+        where: { id: userData.id.toString() },
+        update: {
+          name: userData.name || userData.login,
+          email: userEmail,
+          image: userData.avatar_url,
+          updatedAt: new Date(),
+        },
+        create: {
+          id: userData.id.toString(),
+          name: userData.name || userData.login,
+          email: userEmail,
+          image: userData.avatar_url,
+          role: 'ADMIN', // Default to admin for testing
+          emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Step 5: Create session
+      const sessionToken = `session_${Date.now()}`;
+      await prisma.session.create({
+        data: {
+          id: sessionToken,
+          token: `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          ipAddress:
+            (req.headers['x-forwarded-for'] as string) ||
+            req.socket.remoteAddress ||
+            'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Step 6: Set session cookie and redirect
+      res.setHeader(
+        'Set-Cookie',
+        `session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}`
+      );
+
+      // Redirect to dashboard
+      res.redirect('/');
+    } catch {
+      return res.status(500).json({ error: 'Database operation failed' });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Internal server error during authentication',
+      details:
+        process.env.NODE_ENV === 'development'
+          ? (error as Error).message
+          : undefined,
     });
-
-    // Step 5: Create session
-    const sessionToken = `session_${Date.now()}`;
-    await prisma.session.create({
-      data: {
-        id: sessionToken,
-        token: `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        ipAddress:
-          (req.headers['x-forwarded-for'] as string) ||
-          req.socket.remoteAddress ||
-          'unknown',
-        userAgent: req.headers['user-agent'] || 'unknown',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    // Step 6: Set session cookie and redirect
-    res.setHeader(
-      'Set-Cookie',
-      `session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}`
-    );
-
-    // Redirect to dashboard
-    res.redirect('/');
-  } catch {
-    return res.status(500).json({ error: 'Internal server error' });
   }
 }

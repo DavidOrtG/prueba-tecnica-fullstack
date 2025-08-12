@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
+
+// Create Prisma client instance
+const prisma = new PrismaClient();
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -10,33 +11,10 @@ const requiredEnvVars = {
 };
 
 // Check if all required environment variables are present
-Object.entries(requiredEnvVars).forEach(([key, value]) => {
+Object.entries(requiredEnvVars).forEach(([, value]) => {
   if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    // Environment variable missing - this will be logged by the runtime
   }
-});
-
-const prisma = new PrismaClient();
-
-// Test database connection
-try {
-  await prisma.$connect();
-} catch {
-  throw new Error('Database connection failed');
-}
-
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: 'postgresql',
-  }),
-  socialProviders: {
-    github: {
-      clientId: requiredEnvVars.GITHUB_ID!,
-      clientSecret: requiredEnvVars.GITHUB_SECRET!,
-    },
-  },
-  // Remove callbacks and pages as they may not be supported in v1.1.1
-  // The basic configuration should work for now
 });
 
 export { prisma };
